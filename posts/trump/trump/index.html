@@ -1,0 +1,677 @@
+<!doctype html><html><head><title>Analyzing Donald Trump's Tweets Using Natural Language Processing</title><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><meta http-equiv=x-ua-compatible content="ie=edge"><link rel=stylesheet href=/assets/css/bootstrap.min.css><link rel=stylesheet href=/assets/css/layouts/main.css><link rel=stylesheet href=/assets/css/style.css><link rel=stylesheet href=/assets/css/navigators/navbar.css><link href="https://fonts.googleapis.com/css2?family=Muli:wght@300;400;500;600" rel=stylesheet><link rel=stylesheet href=https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.11.2/css/all.min.css><link rel=icon type=image/png href=/assets/images/thet_round.png><link rel=stylesheet href=/assets/css/style.css><meta name=description content="Analysis of Donald Trump’s complete Twitter history using Natural Language Processing and VADER Sentiment Analysis"><link rel=stylesheet href=https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.1/styles/atom-one-dark.min.css><link rel=stylesheet href=/assets/css/layouts/single.css><link rel=stylesheet href=/assets/css/navigators/sidebar.css></head><body data-spy=scroll data-target=#TableOfContents data-offset=80><div class="container-fluid bg-dimmed wrapper"><nav class="navbar navbar-expand-xl top-navbar final-navbar shadow"><div class=container><button class="navbar-toggler navbar-light" id=sidebar-toggler type=button onclick=toggleSidebar()>
+<span class=navbar-toggler-icon></span></button>
+<a class=navbar-brand href=/><img src=/images/site/thet_round.png>Thet Naing</a>
+<button class="navbar-toggler navbar-light" id=toc-toggler type=button onclick=toggleTOC()>
+<span class=navbar-toggler-icon></span></button><div class="collapse navbar-collapse lang-selector" id=top-nav-items><ul class="navbar-nav ml-auto"></ul></div></div><img src=/images/site/thet_round.png class=d-none id=main-logo>
+<img src=/images/site/thet_round.png class=d-none id=inverted-logo></nav><section class=sidebar-section id=sidebar-section><div class=sidebar-holder><div class=sidebar id=sidebar><input type=text placeholder=Search data-search id=search-box><div class=sidebar-tree><ul class=tree id=tree><li id=list-heading><a href=/posts data-filter=all>Posts</a></li><div class=subtree><li><a href=/posts/fraud/fraud/>Credit Card Fraud Detection</a></li><li><a href=/posts/house-prices/house-prices/>House Price Regression</a></li><li><a class=active href=/posts/trump/trump/>Trump Twitter Analysis</a></li></div></ul></div></div></div></section><section class=content-section id=content-section><div class=content><div class="container p-0 read-area"><div class="hero-area col-sm-12" id=hero-area style=background-image:url(https://naingthet.github.io/images/posts/trump/twitter_post.jpg)></div><div class=page-content><div class="author-profile ml-auto align-self-lg-center"><img class=rounded-circle src=/images/author/thet.png><h5 class=author-name>Thet Naing</h5><p>November 18, 2020</p></div><div class=title><h1>Analyzing Donald Trump's Tweets Using Natural Language Processing</h1></div><div class=post-content id=post-content><p><a href=https://github.com/naingthet/trump-tweets-nlp>Project GitHub Repository</a></p><h2 id=introduction>Introduction</h2><p>There is no doubt that <strong>Donald Trump has been a very controversial and polarizing figure in the United States</strong>, especially since he announced his run for the presidency in 2015.</p><p>Throughout his presidency, Donald Trump has used Twitter as a powerful tool to reach his supporters. The social media service has, without a doubt, been one of his most powerful tools.</p><p>This project was primarily inspired by Donald Trump&rsquo;s relentless use of Twitter, as it has raised some important questions, including but not limited to:</p><ul><li>What is the overall sentiment of Trump&rsquo;s tweets, and how has it changed over time?</li><li>What are some defining features of Trump&rsquo;s behavior on Twitter, and how can we visualize them?</li></ul><p>In this project, I will walk you through my analysis of over 50,000 of Donald Trump&rsquo;s tweets using Python and Natural Language Processing (NLP) techniques. Thankfully, <a href=https://www.thetrumparchive.com>The Trump Archive</a> has provided an open-source API dedicated entirely to Donald Trump&rsquo;s tweets, and we will be using this dataset to perform our analysis today.</p><p>As we approach this problem, one cannot help but wonder: to what extent can a NLP algorithm tell us about the meaning and feeling behind a single individual&rsquo;s thoughts, especially when they were, until just recently, limited to 140 characters?</p><h2 id=setup>Setup</h2><h3 id=imports>Imports</h3><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-python data-lang=python><span style=color:#75715e># Working with dates</span>
+<span style=color:#f92672>from</span> datetime <span style=color:#f92672>import</span> datetime <span style=color:#66d9ef>as</span> dt
+<span style=color:#f92672>from</span> pytz <span style=color:#f92672>import</span> timezone
+
+<span style=color:#75715e># Data cleaning, analysis</span>
+<span style=color:#f92672>import</span> pandas <span style=color:#f92672>as</span> pd
+<span style=color:#f92672>import</span> numpy <span style=color:#f92672>as</span> np
+
+<span style=color:#75715e># Data Visualization</span>
+<span style=color:#f92672>import</span> matplotlib <span style=color:#f92672>as</span> mpl
+<span style=color:#f92672>from</span> matplotlib <span style=color:#f92672>import</span> pyplot <span style=color:#66d9ef>as</span> plt
+<span style=color:#f92672>import</span> seaborn <span style=color:#f92672>as</span> sns
+<span style=color:#f92672>%</span>matplotlib inline
+
+<span style=color:#75715e># Natural Language Processing</span>
+<span style=color:#f92672>import</span> nltk<span style=color:#f92672>,</span> re<span style=color:#f92672>,</span> string
+<span style=color:#f92672>from</span> nltk <span style=color:#f92672>import</span> word_tokenize
+<span style=color:#f92672>from</span> nltk.stem <span style=color:#f92672>import</span> WordNetLemmatizer
+<span style=color:#f92672>from</span> nltk.corpus <span style=color:#f92672>import</span> stopwords
+<span style=color:#f92672>from</span> nltk.util <span style=color:#f92672>import</span> ngrams
+<span style=color:#f92672>from</span> nltk.corpus <span style=color:#f92672>import</span> wordnet
+<span style=color:#f92672>from</span> collections <span style=color:#f92672>import</span> Counter
+nltk<span style=color:#f92672>.</span>download(<span style=color:#e6db74>&#39;stopwords&#39;</span>)
+nltk<span style=color:#f92672>.</span>download(<span style=color:#e6db74>&#39;punkt&#39;</span>)
+nltk<span style=color:#f92672>.</span>download(<span style=color:#e6db74>&#39;wordnet&#39;</span>)
+
+
+<span style=color:#75715e># VADER Sentiment Analyzer from NLTK</span>
+<span style=color:#f92672>from</span> nltk.sentiment <span style=color:#f92672>import</span> SentimentAnalyzer
+<span style=color:#f92672>from</span> nltk.sentiment.util <span style=color:#f92672>import</span> <span style=color:#f92672>*</span>
+<span style=color:#f92672>from</span> nltk.sentiment.vader <span style=color:#f92672>import</span> SentimentIntensityAnalyzer
+nltk<span style=color:#f92672>.</span>download(<span style=color:#e6db74>&#39;vader_lexicon&#39;</span>)
+
+<span style=color:#75715e># Hide warnings</span>
+<span style=color:#f92672>import</span> warnings
+warnings<span style=color:#f92672>.</span>filterwarnings(<span style=color:#e6db74>&#39;ignore&#39;</span>)
+
+<span style=color:#75715e># Ensure that pandas dataframs are able to print</span>
+pd<span style=color:#f92672>.</span>set_option(<span style=color:#e6db74>&#39;display.max_columns&#39;</span>, <span style=color:#ae81ff>10</span>)
+</code></pre></div><h3 id=loading-the-data>Loading the Data</h3><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-python data-lang=python>url <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;https://raw.githubusercontent.com/naingthet/trump-tweets-nlp/gh-pages/trump_tweets.csv&#34;</span>
+trump_tweets <span style=color:#f92672>=</span> pd<span style=color:#f92672>.</span>read_csv(url, parse_dates<span style=color:#f92672>=</span>True)
+<span style=color:#66d9ef>print</span>(trump_tweets<span style=color:#f92672>.</span>head())
+</code></pre></div><pre><code>                    id                                               text isRetweet isDeleted              device  favorites  retweets                 date
+0    98454970654916608  Republicans and Democrats have both created ou...         f         f           TweetDeck         49       255  2011-08-02 18:07:48
+1  1234653427789070336  I was thrilled to be back in the Great city of...         f         f  Twitter for iPhone      73748     17404  2020-03-03 01:34:50
+2  1218010753434820614  RT @CBS_Herridge: READ: Letter to surveillance...         t         f  Twitter for iPhone          0      7396  2020-01-17 03:22:47
+3  1304875170860015617  The Unsolicited Mail In Ballot Scam is a major...         f         f  Twitter for iPhone      80527     23502  2020-09-12 20:10:58
+4  1218159531554897920  RT @MZHemingway: Very friendly telling of even...         t         f  Twitter for iPhone          0      9081  2020-01-17 13:13:59
+</code></pre><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-python data-lang=python>len(trump_tweets)
+</code></pre></div><pre><code>55090
+</code></pre><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-python data-lang=python><span style=color:#75715e># Creating a deep copy of the dataset in case of contamination or mistakes</span>
+trump <span style=color:#f92672>=</span> trump_tweets<span style=color:#f92672>.</span>copy(deep<span style=color:#f92672>=</span>True)
+</code></pre></div><h3 id=utility-functions>Utility Functions</h3><p>We will now create a few utility functions for graphing that will be useful later. These functions were originally written as the project was developed, but the code has been placed here in the upfront section for convenience. There are additional utility functions that will be created throughout the project.</p><h4 id=date_plotter>date_plotter</h4><p>This function will allow us to easily create effective graphs for our time series data.</p><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-python data-lang=python><span style=color:#66d9ef>def</span> <span style=color:#a6e22e>date_plotter</span>(df, x, y, xlabel <span style=color:#f92672>=</span> None, ylabel <span style=color:#f92672>=</span> None, title <span style=color:#f92672>=</span> None, legend <span style=color:#f92672>=</span> False, labels <span style=color:#f92672>=</span> None, figsize <span style=color:#f92672>=</span> None, fmt <span style=color:#f92672>=</span> <span style=color:#e6db74>&#39;r-&#39;</span>, increments <span style=color:#f92672>=</span> <span style=color:#e6db74>&#39;month&#39;</span>):
+  <span style=color:#75715e># This function will help us to create appealing and effective graphs for our time-series data</span>
+  <span style=color:#75715e># Input a dataframe and specify x and y columns (x column should contain dates)</span>
+
+  <span style=color:#75715e># Preparing the data</span>
+
+  <span style=color:#75715e># Save the df as a new variable</span>
+  data <span style=color:#f92672>=</span> df
+
+  <span style=color:#75715e># Convert date values to datetime format</span>
+  data[x] <span style=color:#f92672>=</span> data[x]<span style=color:#f92672>.</span>apply(pd<span style=color:#f92672>.</span>to_datetime)
+  <span style=color:#75715e># Save the date values to a list</span>
+  dates_list <span style=color:#f92672>=</span> data[x]<span style=color:#f92672>.</span>to_list()
+  <span style=color:#75715e># Convert list of dates to numerical format; these will be the x values</span>
+  dates <span style=color:#f92672>=</span> mpl<span style=color:#f92672>.</span>dates<span style=color:#f92672>.</span>date2num(dates_list)
+
+  <span style=color:#75715e># Gathering the y values</span>
+  y_list <span style=color:#f92672>=</span> data[y]<span style=color:#f92672>.</span>to_list()
+  y_values <span style=color:#f92672>=</span> np<span style=color:#f92672>.</span>array(y_list)
+
+  <span style=color:#75715e># Plotting</span>
+
+  <span style=color:#75715e># Create figure, axes, and plot</span>
+  <span style=color:#66d9ef>if</span> figsize <span style=color:#f92672>==</span> None:
+    fig, ax <span style=color:#f92672>=</span> plt<span style=color:#f92672>.</span>subplots()
+  <span style=color:#66d9ef>else</span>:
+    fig, ax <span style=color:#f92672>=</span> plt<span style=color:#f92672>.</span>subplots(figsize <span style=color:#f92672>=</span> figsize)
+  ax<span style=color:#f92672>.</span>plot_date(x <span style=color:#f92672>=</span> dates, y <span style=color:#f92672>=</span> y_values, fmt <span style=color:#f92672>=</span> fmt)
+
+  <span style=color:#75715e># Formatting dates</span>
+  years <span style=color:#f92672>=</span> mpl<span style=color:#f92672>.</span>dates<span style=color:#f92672>.</span>YearLocator()   <span style=color:#75715e># every year</span>
+  months <span style=color:#f92672>=</span> mpl<span style=color:#f92672>.</span>dates<span style=color:#f92672>.</span>MonthLocator()  <span style=color:#75715e># every month</span>
+  years_fmt <span style=color:#f92672>=</span> mpl<span style=color:#f92672>.</span>dates<span style=color:#f92672>.</span>DateFormatter(<span style=color:#e6db74>&#39;%Y&#39;</span>)
+  months_fmt <span style=color:#f92672>=</span> mpl<span style=color:#f92672>.</span>dates<span style=color:#f92672>.</span>DateFormatter(<span style=color:#e6db74>&#39;%Y-%m&#39;</span>)
+
+  <span style=color:#75715e># Formatting the ticks by months or years</span>
+  <span style=color:#75715e># Creating a list of options for increments to ensure proper input</span>
+  increment_options <span style=color:#f92672>=</span> [<span style=color:#e6db74>&#39;month&#39;</span>, <span style=color:#e6db74>&#39;year&#39;</span>]
+  <span style=color:#66d9ef>if</span> increments <span style=color:#f92672>not</span> <span style=color:#f92672>in</span> increment_options:
+    <span style=color:#66d9ef>raise</span> <span style=color:#a6e22e>ValueError</span>(<span style=color:#e6db74>&#34;Invalid increment type. Expected one of: {}&#34;</span><span style=color:#f92672>.</span>format(increment_options))
+
+  <span style=color:#66d9ef>if</span> increments <span style=color:#f92672>==</span> <span style=color:#e6db74>&#39;month&#39;</span>:
+    ax<span style=color:#f92672>.</span>xaxis<span style=color:#f92672>.</span>set_major_locator(months)
+    ax<span style=color:#f92672>.</span>xaxis<span style=color:#f92672>.</span>set_major_formatter(months_fmt)
+  <span style=color:#66d9ef>elif</span> increments <span style=color:#f92672>==</span> <span style=color:#e6db74>&#39;year&#39;</span>:
+    ax<span style=color:#f92672>.</span>xaxis<span style=color:#f92672>.</span>set_major_locator(years)
+    ax<span style=color:#f92672>.</span>xaxis<span style=color:#f92672>.</span>set_major_formatter(years_fmt)
+
+  <span style=color:#75715e># Setting x-axis limits  </span>
+  datemin <span style=color:#f92672>=</span> dates[<span style=color:#ae81ff>0</span>]
+  datemax <span style=color:#f92672>=</span> dates[<span style=color:#f92672>-</span><span style=color:#ae81ff>1</span>]
+  ax<span style=color:#f92672>.</span>set_xlim(datemin, datemax)
+
+  <span style=color:#75715e># Formatting coordinate grid</span>
+  <span style=color:#66d9ef>if</span> increments <span style=color:#f92672>==</span> <span style=color:#e6db74>&#39;month&#39;</span>:
+    ax<span style=color:#f92672>.</span>format_xdata <span style=color:#f92672>=</span> mpl<span style=color:#f92672>.</span>dates<span style=color:#f92672>.</span>DateFormatter(<span style=color:#e6db74>&#39;%Y-%m&#39;</span>)
+  <span style=color:#66d9ef>elif</span> increments <span style=color:#f92672>==</span> <span style=color:#e6db74>&#39;year&#39;</span>:
+    ax<span style=color:#f92672>.</span>format_xdata <span style=color:#f92672>=</span> mpl<span style=color:#f92672>.</span>dates<span style=color:#f92672>.</span>DateFormatter(<span style=color:#e6db74>&#39;%Y&#39;</span>)
+
+  ax<span style=color:#f92672>.</span>grid(True)
+
+  <span style=color:#75715e># X-axis formatting</span>
+  fig<span style=color:#f92672>.</span>autofmt_xdate()
+
+  <span style=color:#75715e># Additional formatting</span>
+  ax<span style=color:#f92672>.</span>set_title(title)
+  ax<span style=color:#f92672>.</span>set_xlabel(xlabel)
+  ax<span style=color:#f92672>.</span>set_ylabel(ylabel)
+  <span style=color:#66d9ef>if</span> legend:
+    ax<span style=color:#f92672>.</span>legend(labels)
+
+  plt<span style=color:#f92672>.</span>show()
+</code></pre></div><h4 id=date_plotter_sns>date_plotter_sns</h4><p>This function will operate in a manner very similar to <code>date_plotter</code>, but will use the <code>seaborn</code> library instead of just <code>matplotlib</code>. This function will be used to create sentiment analysis graphs, and is designed to mimic the appearance of the following function, <code>multiplotter</code>.</p><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-python data-lang=python><span style=color:#66d9ef>def</span> <span style=color:#a6e22e>date_plotter_sns</span>(df, x, y, xlabel <span style=color:#f92672>=</span> None, ylabel <span style=color:#f92672>=</span> None, title <span style=color:#f92672>=</span> None, legend <span style=color:#f92672>=</span> False, labels <span style=color:#f92672>=</span> None, figsize <span style=color:#f92672>=</span> None, fmt <span style=color:#f92672>=</span> <span style=color:#e6db74>&#39;r-&#39;</span>, increments <span style=color:#f92672>=</span> <span style=color:#e6db74>&#39;month&#39;</span>):
+  <span style=color:#75715e># This function will help us to create appealing and effective graphs for our time-series data</span>
+  <span style=color:#75715e># Input a dataframe and specify x and y columns (x column should contain dates)</span>
+
+  <span style=color:#75715e># Preparing the data</span>
+
+  <span style=color:#75715e># Save the df as a new variable</span>
+  data <span style=color:#f92672>=</span> df
+  color <span style=color:#f92672>=</span> <span style=color:#e6db74>&#39;#3495eb&#39;</span>
+
+  <span style=color:#75715e># Convert date values to datetime format</span>
+  data[x] <span style=color:#f92672>=</span> data[x]<span style=color:#f92672>.</span>apply(pd<span style=color:#f92672>.</span>to_datetime)
+  <span style=color:#75715e># Save the date values to a list</span>
+  dates_list <span style=color:#f92672>=</span> data[x]<span style=color:#f92672>.</span>to_list()
+  <span style=color:#75715e># Convert list of dates to numerical format; these will be the x values</span>
+  dates <span style=color:#f92672>=</span> mpl<span style=color:#f92672>.</span>dates<span style=color:#f92672>.</span>date2num(dates_list)
+
+  <span style=color:#75715e># Gathering the y values</span>
+  y_list <span style=color:#f92672>=</span> data[y]<span style=color:#f92672>.</span>to_list()
+  y_values <span style=color:#f92672>=</span> np<span style=color:#f92672>.</span>array(y_list)
+
+  <span style=color:#75715e># Plotting</span>
+
+  <span style=color:#75715e>#Create figure, axes, and plot</span>
+  <span style=color:#66d9ef>if</span> figsize <span style=color:#f92672>==</span> None:
+    fig, ax <span style=color:#f92672>=</span> plt<span style=color:#f92672>.</span>subplots()
+  <span style=color:#66d9ef>else</span>:
+    fig, ax <span style=color:#f92672>=</span> plt<span style=color:#f92672>.</span>subplots(figsize <span style=color:#f92672>=</span> figsize)
+  sns<span style=color:#f92672>.</span>set_theme(style<span style=color:#f92672>=</span><span style=color:#e6db74>&#39;white&#39;</span>)
+  sns<span style=color:#f92672>.</span>lineplot(data <span style=color:#f92672>=</span> data, x <span style=color:#f92672>=</span> dates, y <span style=color:#f92672>=</span> y_values, ax <span style=color:#f92672>=</span> ax,
+               color <span style=color:#f92672>=</span> color, alpha <span style=color:#f92672>=</span> <span style=color:#ae81ff>0.5</span>)
+  sns<span style=color:#f92672>.</span>regplot(data <span style=color:#f92672>=</span> data, x <span style=color:#f92672>=</span> dates, y <span style=color:#f92672>=</span> y_values, ax <span style=color:#f92672>=</span> ax,
+              logistic<span style=color:#f92672>=</span>True, ci<span style=color:#f92672>=</span><span style=color:#ae81ff>95</span>, color<span style=color:#f92672>=</span>color, scatter_kws<span style=color:#f92672>=</span>{<span style=color:#e6db74>&#39;s&#39;</span>:<span style=color:#ae81ff>5</span>})
+
+
+  <span style=color:#75715e># Formatting dates</span>
+  years <span style=color:#f92672>=</span> mpl<span style=color:#f92672>.</span>dates<span style=color:#f92672>.</span>YearLocator()   <span style=color:#75715e># every year</span>
+  months <span style=color:#f92672>=</span> mpl<span style=color:#f92672>.</span>dates<span style=color:#f92672>.</span>MonthLocator()  <span style=color:#75715e># every month</span>
+  years_fmt <span style=color:#f92672>=</span> mpl<span style=color:#f92672>.</span>dates<span style=color:#f92672>.</span>DateFormatter(<span style=color:#e6db74>&#39;%Y&#39;</span>)
+  months_fmt <span style=color:#f92672>=</span> mpl<span style=color:#f92672>.</span>dates<span style=color:#f92672>.</span>DateFormatter(<span style=color:#e6db74>&#39;%Y-%m&#39;</span>)
+
+  <span style=color:#75715e># Formatting the ticks by months or years</span>
+  <span style=color:#75715e># Creating a list of options for increments to ensure proper input</span>
+  increment_options <span style=color:#f92672>=</span> [<span style=color:#e6db74>&#39;month&#39;</span>, <span style=color:#e6db74>&#39;year&#39;</span>]
+  <span style=color:#66d9ef>if</span> increments <span style=color:#f92672>not</span> <span style=color:#f92672>in</span> increment_options:
+    <span style=color:#66d9ef>raise</span> <span style=color:#a6e22e>ValueError</span>(<span style=color:#e6db74>&#34;Invalid increment type. Expected one of: {}&#34;</span><span style=color:#f92672>.</span>format(increment_options))
+
+  <span style=color:#66d9ef>if</span> increments <span style=color:#f92672>==</span> <span style=color:#e6db74>&#39;month&#39;</span>:
+    ax<span style=color:#f92672>.</span>xaxis<span style=color:#f92672>.</span>set_major_locator(months)
+    ax<span style=color:#f92672>.</span>xaxis<span style=color:#f92672>.</span>set_major_formatter(months_fmt)
+  <span style=color:#66d9ef>elif</span> increments <span style=color:#f92672>==</span> <span style=color:#e6db74>&#39;year&#39;</span>:
+    ax<span style=color:#f92672>.</span>xaxis<span style=color:#f92672>.</span>set_major_locator(years)
+    ax<span style=color:#f92672>.</span>xaxis<span style=color:#f92672>.</span>set_major_formatter(years_fmt)
+
+  <span style=color:#75715e># Setting x-axis limits  </span>
+  datemin <span style=color:#f92672>=</span> dates[<span style=color:#ae81ff>0</span>]
+  datemax <span style=color:#f92672>=</span> dates[<span style=color:#f92672>-</span><span style=color:#ae81ff>1</span>]
+  ax<span style=color:#f92672>.</span>set_xlim(datemin, datemax)
+  ax<span style=color:#f92672>.</span>set_ylim(<span style=color:#f92672>-</span><span style=color:#ae81ff>1</span>, <span style=color:#ae81ff>1</span>)
+
+  <span style=color:#75715e># Formatting coordinate grid</span>
+  <span style=color:#66d9ef>if</span> increments <span style=color:#f92672>==</span> <span style=color:#e6db74>&#39;month&#39;</span>:
+    ax<span style=color:#f92672>.</span>format_xdata <span style=color:#f92672>=</span> mpl<span style=color:#f92672>.</span>dates<span style=color:#f92672>.</span>DateFormatter(<span style=color:#e6db74>&#39;%Y-%m&#39;</span>)
+  <span style=color:#66d9ef>elif</span> increments <span style=color:#f92672>==</span> <span style=color:#e6db74>&#39;year&#39;</span>:
+    ax<span style=color:#f92672>.</span>format_xdata <span style=color:#f92672>=</span> mpl<span style=color:#f92672>.</span>dates<span style=color:#f92672>.</span>DateFormatter(<span style=color:#e6db74>&#39;%Y&#39;</span>)
+
+  ax<span style=color:#f92672>.</span>grid(False)
+
+  <span style=color:#75715e># Creating a black horizontal bar at y = 0, which divides positive and negative sentiments</span>
+  ax<span style=color:#f92672>.</span>axhline(c<span style=color:#f92672>=</span> <span style=color:#e6db74>&#39;black&#39;</span>)
+
+  <span style=color:#75715e># X-axis formatting</span>
+  fig<span style=color:#f92672>.</span>autofmt_xdate()
+
+  <span style=color:#75715e># Additional formatting</span>
+  ax<span style=color:#f92672>.</span>set_title(title)
+  ax<span style=color:#f92672>.</span>set_xlabel(xlabel)
+  ax<span style=color:#f92672>.</span>set_ylabel(ylabel)
+  <span style=color:#66d9ef>if</span> legend:
+    ax<span style=color:#f92672>.</span>legend(labels)
+  <span style=color:#75715e># ax.spines[&#39;right&#39;].set_visible(False)</span>
+  <span style=color:#75715e># ax.spines[&#39;top&#39;].set_visible(False)</span>
+
+  plt<span style=color:#f92672>.</span>show()
+</code></pre></div><h4 id=multiplotter>multiplotter</h4><p>This function has a very specific purpose: to create three graphs representing the proportions of positive, neutral, and negative VADER scores.</p><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-python data-lang=python><span style=color:#66d9ef>def</span> <span style=color:#a6e22e>multiplotter</span>(df, x, y, xlabel <span style=color:#f92672>=</span> <span style=color:#e6db74>&#39;Date&#39;</span>,
+                 ylabel <span style=color:#f92672>=</span> [<span style=color:#e6db74>&#39;Positive Sentiment&#39;</span>, <span style=color:#e6db74>&#39;Neutral Sentiment&#39;</span>, <span style=color:#e6db74>&#39;Negative Sentiment&#39;</span>],
+                 title <span style=color:#f92672>=</span> None, labels <span style=color:#f92672>=</span> [<span style=color:#e6db74>&#39;Positive&#39;</span>, <span style=color:#e6db74>&#39;Neutral&#39;</span>, <span style=color:#e6db74>&#39;Negative&#39;</span>],
+                 figsize <span style=color:#f92672>=</span> None, increments <span style=color:#f92672>=</span> <span style=color:#e6db74>&#39;year&#39;</span>):
+  <span style=color:#75715e># This function will help us to create appealing and effective graphs for our time-series data</span>
+  <span style=color:#75715e># Input a dataframe and specify x and y columns (x column should contain dates)</span>
+
+  fig, ax <span style=color:#f92672>=</span> plt<span style=color:#f92672>.</span>subplots(<span style=color:#ae81ff>3</span>, <span style=color:#ae81ff>1</span>, figsize<span style=color:#f92672>=</span>(<span style=color:#ae81ff>12</span>,<span style=color:#ae81ff>8</span>), gridspec_kw<span style=color:#f92672>=</span>{<span style=color:#e6db74>&#39;hspace&#39;</span>:<span style=color:#ae81ff>0.1</span>}, sharex<span style=color:#f92672>=</span>True)
+  fig<span style=color:#f92672>.</span>suptitle(<span style=color:#e6db74>&#39;Daily Average of Tweet Sentiment&#39;</span>)
+  <span style=color:#75715e># fmt = [&#39;g-&#39;, &#39;b-&#39;, &#39;r-&#39;]</span>
+  <span style=color:#75715e># Alternatives: &#39;#52ff52&#39;, &#39;#5252ff&#39;, &#39;#ff5050&#39;</span>
+  colors <span style=color:#f92672>=</span> [<span style=color:#e6db74>&#39;g&#39;</span>, <span style=color:#e6db74>&#39;b&#39;</span>, <span style=color:#e6db74>&#39;r&#39;</span>]
+  xlabels <span style=color:#f92672>=</span> [<span style=color:#e6db74>&#39;Date&#39;</span>, <span style=color:#e6db74>&#39;Date&#39;</span>, <span style=color:#e6db74>&#39;Date&#39;</span>]
+  ylabels <span style=color:#f92672>=</span> [<span style=color:#e6db74>&#39;Positive Sentiment (Proportion)&#39;</span>, <span style=color:#e6db74>&#39;Neutral Sentiment (Proportion)&#39;</span>, <span style=color:#e6db74>&#39;Negative Sentiment (Proportion)&#39;</span>]
+
+  <span style=color:#66d9ef>for</span> i <span style=color:#f92672>in</span> range(<span style=color:#ae81ff>3</span>):
+    <span style=color:#75715e># Loop variables</span>
+    y_it <span style=color:#f92672>=</span> y[i]
+    ax_it <span style=color:#f92672>=</span> ax[i]
+
+    <span style=color:#75715e># Preparing the data</span>
+
+    <span style=color:#75715e># Save the df as a new variable</span>
+    data <span style=color:#f92672>=</span> df
+    plt<span style=color:#f92672>.</span>axhline(c<span style=color:#f92672>=</span><span style=color:#e6db74>&#39;black&#39;</span>)
+    <span style=color:#75715e># Convert date values to datetime format</span>
+    data[x] <span style=color:#f92672>=</span> data[x]<span style=color:#f92672>.</span>apply(pd<span style=color:#f92672>.</span>to_datetime)
+    <span style=color:#75715e># Save the date values to a list</span>
+    dates_list <span style=color:#f92672>=</span> data[x]<span style=color:#f92672>.</span>to_list()
+    <span style=color:#75715e># Convert list of dates to numerical format; these will be the x values</span>
+    dates <span style=color:#f92672>=</span> mpl<span style=color:#f92672>.</span>dates<span style=color:#f92672>.</span>date2num(dates_list)
+
+    <span style=color:#75715e># Gathering the y values</span>
+    y_list <span style=color:#f92672>=</span> data[y_it]<span style=color:#f92672>.</span>to_list()
+    y_values <span style=color:#f92672>=</span> np<span style=color:#f92672>.</span>array(y_list)
+
+    <span style=color:#75715e># Plotting</span>
+
+    <span style=color:#75715e># Create figure, axes, and plot</span>
+    sns<span style=color:#f92672>.</span>set_theme(style<span style=color:#f92672>=</span><span style=color:#e6db74>&#39;white&#39;</span>)
+    sns<span style=color:#f92672>.</span>lineplot(data <span style=color:#f92672>=</span> data, x <span style=color:#f92672>=</span> dates, y <span style=color:#f92672>=</span> y_values, ax <span style=color:#f92672>=</span> ax_it,
+                 color <span style=color:#f92672>=</span> colors[i], alpha <span style=color:#f92672>=</span> <span style=color:#ae81ff>0.5</span>)
+    sns<span style=color:#f92672>.</span>regplot(data <span style=color:#f92672>=</span> data, x <span style=color:#f92672>=</span> dates, y <span style=color:#f92672>=</span> y_values, ax <span style=color:#f92672>=</span> ax_it,
+                logistic<span style=color:#f92672>=</span>True, ci<span style=color:#f92672>=</span><span style=color:#ae81ff>95</span>, color<span style=color:#f92672>=</span>colors[i], scatter_kws<span style=color:#f92672>=</span>{<span style=color:#e6db74>&#39;s&#39;</span>:<span style=color:#ae81ff>5</span>})
+    <span style=color:#75715e># ax_it.plot_date(x = dates, y = y_values, fmt = fmt[i])</span>
+
+    <span style=color:#75715e># Formatting dates</span>
+    years <span style=color:#f92672>=</span> mpl<span style=color:#f92672>.</span>dates<span style=color:#f92672>.</span>YearLocator()   <span style=color:#75715e># every year</span>
+    months <span style=color:#f92672>=</span> mpl<span style=color:#f92672>.</span>dates<span style=color:#f92672>.</span>MonthLocator()  <span style=color:#75715e># every month</span>
+    years_fmt <span style=color:#f92672>=</span> mpl<span style=color:#f92672>.</span>dates<span style=color:#f92672>.</span>DateFormatter(<span style=color:#e6db74>&#39;%Y&#39;</span>)
+    months_fmt <span style=color:#f92672>=</span> mpl<span style=color:#f92672>.</span>dates<span style=color:#f92672>.</span>DateFormatter(<span style=color:#e6db74>&#39;%Y-%m&#39;</span>)
+
+    <span style=color:#75715e># Formatting the ticks by months or years</span>
+    <span style=color:#75715e># Creating a list of options for increments to ensure proper input</span>
+    increment_options <span style=color:#f92672>=</span> [<span style=color:#e6db74>&#39;month&#39;</span>, <span style=color:#e6db74>&#39;year&#39;</span>]
+    <span style=color:#66d9ef>if</span> increments <span style=color:#f92672>not</span> <span style=color:#f92672>in</span> increment_options:
+      <span style=color:#66d9ef>raise</span> <span style=color:#a6e22e>ValueError</span>(<span style=color:#e6db74>&#34;Invalid increment type. Expected one of: {}&#34;</span><span style=color:#f92672>.</span>format(increment_options))
+
+    <span style=color:#66d9ef>if</span> increments <span style=color:#f92672>==</span> <span style=color:#e6db74>&#39;month&#39;</span>:
+      ax_it<span style=color:#f92672>.</span>xaxis<span style=color:#f92672>.</span>set_major_locator(months)
+      ax_it<span style=color:#f92672>.</span>xaxis<span style=color:#f92672>.</span>set_major_formatter(months_fmt)
+    <span style=color:#66d9ef>elif</span> increments <span style=color:#f92672>==</span> <span style=color:#e6db74>&#39;year&#39;</span>:
+      ax_it<span style=color:#f92672>.</span>xaxis<span style=color:#f92672>.</span>set_major_locator(years)
+      ax_it<span style=color:#f92672>.</span>xaxis<span style=color:#f92672>.</span>set_major_formatter(years_fmt)
+
+    <span style=color:#75715e># Setting axis limits  </span>
+    datemin <span style=color:#f92672>=</span> dates[<span style=color:#ae81ff>0</span>]
+    datemax <span style=color:#f92672>=</span> dates[<span style=color:#f92672>-</span><span style=color:#ae81ff>1</span>]
+    y_min <span style=color:#f92672>=</span> <span style=color:#ae81ff>0.0</span>
+    y_max <span style=color:#f92672>=</span> <span style=color:#ae81ff>1.0</span>
+    <span style=color:#75715e># y_min = y_values.min()</span>
+    <span style=color:#75715e># y_max = y_values.max()</span>
+    ax_it<span style=color:#f92672>.</span>set_xlim(datemin, datemax)
+    ax_it<span style=color:#f92672>.</span>set_ylim(y_min, y_max)
+
+    <span style=color:#75715e># Formatting coordinate grid</span>
+    <span style=color:#66d9ef>if</span> increments <span style=color:#f92672>==</span> <span style=color:#e6db74>&#39;month&#39;</span>:
+      ax_it<span style=color:#f92672>.</span>format_xdata <span style=color:#f92672>=</span> mpl<span style=color:#f92672>.</span>dates<span style=color:#f92672>.</span>DateFormatter(<span style=color:#e6db74>&#39;%Y-%m&#39;</span>)
+    <span style=color:#66d9ef>elif</span> increments <span style=color:#f92672>==</span> <span style=color:#e6db74>&#39;year&#39;</span>:
+      ax_it<span style=color:#f92672>.</span>format_xdata <span style=color:#f92672>=</span> mpl<span style=color:#f92672>.</span>dates<span style=color:#f92672>.</span>DateFormatter(<span style=color:#e6db74>&#39;%Y&#39;</span>)
+
+    <span style=color:#75715e># Removing outer spines</span>
+    <span style=color:#66d9ef>if</span> i <span style=color:#f92672>==</span> <span style=color:#ae81ff>2</span>:
+      ax_it<span style=color:#f92672>.</span>spines[<span style=color:#e6db74>&#39;right&#39;</span>]<span style=color:#f92672>.</span>set_visible(False)
+      ax_it<span style=color:#f92672>.</span>spines[<span style=color:#e6db74>&#39;top&#39;</span>]<span style=color:#f92672>.</span>set_visible(False)
+    <span style=color:#66d9ef>else</span>:
+      ax_it<span style=color:#f92672>.</span>spines[<span style=color:#e6db74>&#39;right&#39;</span>]<span style=color:#f92672>.</span>set_visible(False)
+      ax_it<span style=color:#f92672>.</span>spines[<span style=color:#e6db74>&#39;top&#39;</span>]<span style=color:#f92672>.</span>set_visible(False)
+      ax_it<span style=color:#f92672>.</span>spines[<span style=color:#e6db74>&#39;bottom&#39;</span>]<span style=color:#f92672>.</span>set_visible(False)
+
+    <span style=color:#75715e># Axis formatting</span>
+    fig<span style=color:#f92672>.</span>autofmt_xdate()
+
+    <span style=color:#75715e># Additional formatting</span>
+    <span style=color:#75715e>#ax_it.set_title(title)</span>
+    ax_it<span style=color:#f92672>.</span>set_xlabel(xlabel)
+    ax_it<span style=color:#f92672>.</span>set_ylabel(ylabel[i])
+
+
+  plt<span style=color:#f92672>.</span>show()
+</code></pre></div><h2 id=visualization-setup>Visualization Setup</h2><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-python data-lang=python><span style=color:#75715e># Matplotlib parameters</span>
+mpl<span style=color:#f92672>.</span>rcParams[<span style=color:#e6db74>&#39;figure.figsize&#39;</span>] <span style=color:#f92672>=</span> [<span style=color:#ae81ff>12</span>,<span style=color:#ae81ff>6</span>]
+mpl<span style=color:#f92672>.</span>rcParams[<span style=color:#e6db74>&#39;font.size&#39;</span>] <span style=color:#f92672>=</span> <span style=color:#ae81ff>120</span>
+
+<span style=color:#75715e># Seaborn setup</span>
+sns<span style=color:#f92672>.</span>set_theme(context<span style=color:#f92672>=</span><span style=color:#e6db74>&#39;poster&#39;</span> , style<span style=color:#f92672>=</span><span style=color:#e6db74>&#39;whitegrid&#39;</span>)
+sns<span style=color:#f92672>.</span>set(rc<span style=color:#f92672>=</span>{<span style=color:#e6db74>&#39;figure.figsize&#39;</span>:(<span style=color:#ae81ff>12</span>, <span style=color:#ae81ff>6</span>)})
+</code></pre></div><h2 id=data-cleaning>Data Cleaning</h2><h3 id=working-with-dates>Working with Dates</h3><p>First, we will convert the date information into datetime format to make analysis easier</p><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-python data-lang=python><span style=color:#75715e># Creating a function to change strings to datetime format</span>
+fmt <span style=color:#f92672>=</span> <span style=color:#e6db74>&#39;%Y-%m-</span><span style=color:#e6db74>%d</span><span style=color:#e6db74> %H:%M:%S&#39;</span>
+<span style=color:#66d9ef>def</span> <span style=color:#a6e22e>create_dt</span>(date):
+    <span style=color:#66d9ef>return</span> dt<span style=color:#f92672>.</span>strptime(date, fmt)
+
+<span style=color:#75715e># Creating a new column in the dataframe with datetime objects</span>
+trump[<span style=color:#e6db74>&#39;datetime&#39;</span>] <span style=color:#f92672>=</span> trump<span style=color:#f92672>.</span>date<span style=color:#f92672>.</span>apply(<span style=color:#66d9ef>lambda</span> x: create_dt(x))
+</code></pre></div><p>Let&rsquo;s look at an example.</p><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-python data-lang=python>date_ex <span style=color:#f92672>=</span> trump<span style=color:#f92672>.</span>datetime[<span style=color:#ae81ff>0</span>]
+<span style=color:#66d9ef>print</span>(date_ex)
+</code></pre></div><pre><code>2011-08-02 18:07:48
+</code></pre><p>Since all of the dates are in UTC time, we need to convert them to EST. The pytz library will help us do this</p><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-python data-lang=python><span style=color:#66d9ef>def</span> <span style=color:#a6e22e>to_est</span>(date):
+  date_utc <span style=color:#f92672>=</span> date<span style=color:#f92672>.</span>replace(tzinfo<span style=color:#f92672>=</span>timezone(<span style=color:#e6db74>&#39;UTC&#39;</span>))
+  date_est <span style=color:#f92672>=</span> date_utc<span style=color:#f92672>.</span>astimezone(timezone(<span style=color:#e6db74>&#39;US/Eastern&#39;</span>))
+  <span style=color:#66d9ef>return</span> date_est
+</code></pre></div><p>Now we can apply the function we created to create a new column with the local/eastern time</p><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-python data-lang=python>trump[<span style=color:#e6db74>&#39;date_est&#39;</span>] <span style=color:#f92672>=</span> trump<span style=color:#f92672>.</span>datetime<span style=color:#f92672>.</span>apply(<span style=color:#66d9ef>lambda</span> x: to_est(x))
+<span style=color:#66d9ef>print</span>(trump[<span style=color:#e6db74>&#39;date_est&#39;</span>]<span style=color:#f92672>.</span>head())
+</code></pre></div><pre><code>0   2011-08-02 14:07:48-04:00
+1   2020-03-02 20:34:50-05:00
+2   2020-01-16 22:22:47-05:00
+3   2020-09-12 16:10:58-04:00
+4   2020-01-17 08:13:59-05:00
+Name: date_est, dtype: datetime64[ns, US/Eastern]
+</code></pre><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-python data-lang=python><span style=color:#75715e># Dropping the UTC columns and renaming the date_est column as &#39;date&#39;</span>
+trump <span style=color:#f92672>=</span> trump<span style=color:#f92672>.</span>drop([<span style=color:#e6db74>&#39;date&#39;</span>, <span style=color:#e6db74>&#39;datetime&#39;</span>], axis <span style=color:#f92672>=</span> <span style=color:#ae81ff>1</span>)
+trump <span style=color:#f92672>=</span> trump<span style=color:#f92672>.</span>rename(columns <span style=color:#f92672>=</span> {<span style=color:#e6db74>&#39;date_est&#39;</span>:<span style=color:#e6db74>&#39;date&#39;</span>})
+</code></pre></div><p>Now that we have processed the dates, we can use it to create a additional columns that contain information such as day of week and month. This will allow us to analyze data based on certain periods of time.</p><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-python data-lang=python>trump[<span style=color:#e6db74>&#39;date_dmy&#39;</span>] <span style=color:#f92672>=</span> trump[<span style=color:#e6db74>&#39;date&#39;</span>]<span style=color:#f92672>.</span>apply(<span style=color:#66d9ef>lambda</span> x: x<span style=color:#f92672>.</span>strftime(<span style=color:#e6db74>&#34;%Y-%m-</span><span style=color:#e6db74>%d</span><span style=color:#e6db74>&#34;</span>))
+trump[<span style=color:#e6db74>&#39;date_my&#39;</span>] <span style=color:#f92672>=</span> trump[<span style=color:#e6db74>&#39;date&#39;</span>]<span style=color:#f92672>.</span>apply(<span style=color:#66d9ef>lambda</span> x: x<span style=color:#f92672>.</span>strftime(<span style=color:#e6db74>&#34;%Y-%m&#34;</span>))
+trump[<span style=color:#e6db74>&#39;time&#39;</span>] <span style=color:#f92672>=</span> trump[<span style=color:#e6db74>&#39;date&#39;</span>]<span style=color:#f92672>.</span>apply(<span style=color:#66d9ef>lambda</span> x: x<span style=color:#f92672>.</span>strftime(<span style=color:#e6db74>&#34;%H:%M&#34;</span>))
+trump[<span style=color:#e6db74>&#39;hour&#39;</span>] <span style=color:#f92672>=</span> trump[<span style=color:#e6db74>&#39;date&#39;</span>]<span style=color:#f92672>.</span>apply(<span style=color:#66d9ef>lambda</span> x: x<span style=color:#f92672>.</span>strftime(<span style=color:#e6db74>&#34;%H&#34;</span>))
+trump[<span style=color:#e6db74>&#39;day_of_week&#39;</span>] <span style=color:#f92672>=</span> trump[<span style=color:#e6db74>&#39;date&#39;</span>]<span style=color:#f92672>.</span>apply(<span style=color:#66d9ef>lambda</span> x: x<span style=color:#f92672>.</span>strftime(<span style=color:#e6db74>&#34;%A&#34;</span>))
+trump[<span style=color:#e6db74>&#39;year&#39;</span>] <span style=color:#f92672>=</span> trump[<span style=color:#e6db74>&#39;date&#39;</span>]<span style=color:#f92672>.</span>apply(<span style=color:#66d9ef>lambda</span> x: x<span style=color:#f92672>.</span>strftime(<span style=color:#e6db74>&#34;%Y&#34;</span>))
+trump[<span style=color:#e6db74>&#39;month&#39;</span>] <span style=color:#f92672>=</span> trump[<span style=color:#e6db74>&#39;date&#39;</span>]<span style=color:#f92672>.</span>apply(<span style=color:#66d9ef>lambda</span> x: x<span style=color:#f92672>.</span>strftime(<span style=color:#e6db74>&#34;%m&#34;</span>))
+<span style=color:#66d9ef>print</span>(trump<span style=color:#f92672>.</span>head())
+</code></pre></div><pre><code>                    id                                               text isRetweet isDeleted              device  ...   time  hour day_of_week  year month
+0    98454970654916608  Republicans and Democrats have both created ou...         f         f           TweetDeck  ...  14:07    14     Tuesday  2011    08
+1  1234653427789070336  I was thrilled to be back in the Great city of...         f         f  Twitter for iPhone  ...  20:34    20      Monday  2020    03
+2  1218010753434820614  RT @CBS_Herridge: READ: Letter to surveillance...         t         f  Twitter for iPhone  ...  22:22    22    Thursday  2020    01
+3  1304875170860015617  The Unsolicited Mail In Ballot Scam is a major...         f         f  Twitter for iPhone  ...  16:10    16    Saturday  2020    09
+4  1218159531554897920  RT @MZHemingway: Very friendly telling of even...         t         f  Twitter for iPhone  ...  08:13    08      Friday  2020    01
+
+[5 rows x 15 columns]
+</code></pre><h2 id=exploratory-data-analysis-and-visualization>Exploratory Data Analysis and Visualization</h2><p>Next, we will go through each of the non-tweet variables in the dataset and explore them. We will devote a substantial part of our project to this section, in hopes that we can uncover patterns in Donald Trump&rsquo;s tweet activity.</p><p>To start, let&rsquo;s look at the distribution of Trump&rsquo;s tweets over time.</p><h3 id=tweets-per-month>Tweets per Month</h3><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-python data-lang=python><span style=color:#75715e># Using aggregate functions to determine tweets per month</span>
+tweets_my <span style=color:#f92672>=</span> trump<span style=color:#f92672>.</span>groupby(trump<span style=color:#f92672>.</span>date_my)<span style=color:#f92672>.</span>date_my<span style=color:#f92672>.</span>count()
+tweets_my <span style=color:#f92672>=</span> pd<span style=color:#f92672>.</span>DataFrame({<span style=color:#e6db74>&#39;date_my&#39;</span>:tweets_my<span style=color:#f92672>.</span>index, <span style=color:#e6db74>&#39;count&#39;</span>:tweets_my<span style=color:#f92672>.</span>values})
+tweets_my
+
+<span style=color:#75715e># Using the custom plotting function</span>
+date_plotter(tweets_my, <span style=color:#e6db74>&#39;date_my&#39;</span>, <span style=color:#e6db74>&#39;count&#39;</span>, xlabel<span style=color:#f92672>=</span><span style=color:#e6db74>&#39;Year&#39;</span>, ylabel<span style=color:#f92672>=</span><span style=color:#e6db74>&#39;Tweets per Month&#39;</span>, title <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;Donald Trump&#39;s Tweets per Month&#34;</span>, increments<span style=color:#f92672>=</span><span style=color:#e6db74>&#39;year&#39;</span>)
+</code></pre></div><img src=/images/posts/trump/trump_twitter_nlp_33_0.png class=center><div style=margin-top:rem></div><p><strong>Note:</strong> Although the x-axis labels represent years, both the x and y values represent <strong>monthly</strong> tweets. We have simply labeled the x-axis with years to minimize clutter.</p><p>Interestingly, it appears that Trump&rsquo;s Twitter activity was very high between 2013 and 2016, then decreased after the start of his presidency. However, even more interesting is the fact that Trump has steadily increased his activity since the start of 2019, and is now sending more tweets per month than ever before!</p><p>It is important to note that the most recent data shows a drop in monthly tweets, but this is due to the fact that this data was collected about halfway through November 2020. We can therefore disregard this drop.</p><h3 id=tweets-per-day>Tweets per Day</h3><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-python data-lang=python><span style=color:#75715e># Using aggregate functions to determine tweets per day</span>
+tweets_day <span style=color:#f92672>=</span> trump<span style=color:#f92672>.</span>date_dmy<span style=color:#f92672>.</span>groupby(trump<span style=color:#f92672>.</span>date_dmy)<span style=color:#f92672>.</span>count()
+tweets_day <span style=color:#f92672>=</span> pd<span style=color:#f92672>.</span>DataFrame({<span style=color:#e6db74>&#39;date_dmy&#39;</span>:tweets_day<span style=color:#f92672>.</span>index, <span style=color:#e6db74>&#39;count&#39;</span>:tweets_day<span style=color:#f92672>.</span>values})
+tweets_day
+
+<span style=color:#75715e># Using the custom plotting function</span>
+date_plotter(tweets_day, <span style=color:#e6db74>&#39;date_dmy&#39;</span>, <span style=color:#e6db74>&#39;count&#39;</span>, xlabel <span style=color:#f92672>=</span> <span style=color:#e6db74>&#39;Date&#39;</span>, ylabel<span style=color:#f92672>=</span> <span style=color:#e6db74>&#39;Tweets per Day&#39;</span>, title<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;Donald Trump&#39;s Tweets per Day&#34;</span>, increments<span style=color:#f92672>=</span><span style=color:#e6db74>&#39;year&#39;</span>)
+</code></pre></div><img src=/images/posts/trump/trump_twitter_nlp_37_0.png class=center><div style=margin-top:rem></div><p>Looking at Trump&rsquo;s tweets per day, we see a very similar trend (as we would expect). However, the daily tweet counts provide more granular insight into Trump&rsquo;s behavior on Twitter. We can see that Trump&rsquo;s tweet count can vary significantly from day to day, as there are handful of days on which he sent out more than 100 tweets.</p><p><strong>I know what you&rsquo;re thinking at this point: that must be an error! 200 tweets in one day? Let&rsquo;s take a look at this day in particular and see what we find.</strong></p><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-python data-lang=python>busiest_day <span style=color:#f92672>=</span> trump<span style=color:#f92672>.</span>date_dmy<span style=color:#f92672>.</span>value_counts()<span style=color:#f92672>.</span>index[<span style=color:#ae81ff>0</span>]
+most_tweets_day <span style=color:#f92672>=</span> trump<span style=color:#f92672>.</span>date_dmy<span style=color:#f92672>.</span>value_counts()<span style=color:#f92672>.</span>values[<span style=color:#ae81ff>0</span>]
+<span style=color:#66d9ef>print</span>(<span style=color:#e6db74>&#34;Trump&#39;s Busiest Day on Twitter: {} Tweets on {}&#34;</span><span style=color:#f92672>.</span>format(most_tweets_day, busiest_day))
+</code></pre></div><pre><code>Trump's Busiest Day on Twitter: 200 Tweets on 2020-06-05
+</code></pre><p>Turns out, on June 5th, 2020, Donald Trump actually tweeted 200 times! Check out this article from <a href=https://www.insider.com/trump-breaks-record-most-tweets-in-a-single-day-2020-6>Insider</a>.</p><h3 id=tweets-by-day-of-the-week>Tweets by Day of the Week</h3><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-python data-lang=python><span style=color:#75715e># Using pandas aggregates to count total tweets by day of week</span>
+tweets_by_day <span style=color:#f92672>=</span> trump<span style=color:#f92672>.</span>day_of_week<span style=color:#f92672>.</span>groupby(trump<span style=color:#f92672>.</span>day_of_week)<span style=color:#f92672>.</span>count()
+tweets_by_day <span style=color:#f92672>=</span> tweets_by_day<span style=color:#f92672>.</span>reindex([<span style=color:#e6db74>&#39;Monday&#39;</span>, <span style=color:#e6db74>&#39;Tuesday&#39;</span>, <span style=color:#e6db74>&#39;Wednesday&#39;</span>, <span style=color:#e6db74>&#39;Thursday&#39;</span>, <span style=color:#e6db74>&#39;Friday&#39;</span>, <span style=color:#e6db74>&#39;Saturday&#39;</span>, <span style=color:#e6db74>&#39;Sunday&#39;</span>])
+tweets_by_day <span style=color:#f92672>=</span> pd<span style=color:#f92672>.</span>DataFrame({<span style=color:#e6db74>&#39;day_of_week&#39;</span>: tweets_by_day<span style=color:#f92672>.</span>index, <span style=color:#e6db74>&#39;count&#39;</span>: tweets_by_day<span style=color:#f92672>.</span>values})
+<span style=color:#66d9ef>print</span>(tweets_by_day)
+</code></pre></div><pre><code>  day_of_week  count
+0      Monday   8197
+1     Tuesday   9077
+2   Wednesday   8799
+3    Thursday   8270
+4      Friday   8236
+5    Saturday   6350
+6      Sunday   6161
+</code></pre><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-python data-lang=python><span style=color:#75715e># We will use seaborn to construct a bar graph</span>
+p <span style=color:#f92672>=</span> sns<span style=color:#f92672>.</span>barplot(data<span style=color:#f92672>=</span>tweets_by_day, x <span style=color:#f92672>=</span> <span style=color:#e6db74>&#39;day_of_week&#39;</span>, y<span style=color:#f92672>=</span><span style=color:#e6db74>&#39;count&#39;</span>, palette<span style=color:#f92672>=</span><span style=color:#e6db74>&#39;muted&#39;</span>)
+p<span style=color:#f92672>.</span>set_xlabel(<span style=color:#e6db74>&#39;Day of Week&#39;</span>)
+p<span style=color:#f92672>.</span>set_ylabel(<span style=color:#e6db74>&#39;Total Tweets&#39;</span>)
+p<span style=color:#f92672>.</span>set_title(<span style=color:#e6db74>&#34;Trump&#39;s Tweets by Day of Week&#34;</span>)
+plt<span style=color:#f92672>.</span>show()
+</code></pre></div><img src=/images/posts/trump/trump_twitter_nlp_44_0.png class=center><div style=margin-top:rem></div><p>It appears that Trump tweets more during the week, but aside from this we are not learning much from this visualization. Let&rsquo;s try to see if we can find more valuable insights by adding hour of day into this analysis.</p><p>We will pivot the data so that we can see the frequency of tweets based on day of the week and hour of day. This will give us a visual representation of when Donald Trump likes to tweet.</p><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-python data-lang=python><span style=color:#75715e># Preparing data for heatmap</span>
+<span style=color:#75715e># Grouping by day of week and hour</span>
+day_hour <span style=color:#f92672>=</span> trump<span style=color:#f92672>.</span>id<span style=color:#f92672>.</span>groupby([trump<span style=color:#f92672>.</span>day_of_week, trump<span style=color:#f92672>.</span>hour])<span style=color:#f92672>.</span>count()<span style=color:#f92672>.</span>reset_index()
+<span style=color:#75715e># Create a pivot table to call aggregate sum function</span>
+day_hour <span style=color:#f92672>=</span> pd<span style=color:#f92672>.</span>pivot_table(day_hour, values <span style=color:#f92672>=</span> <span style=color:#e6db74>&#39;id&#39;</span>, index <span style=color:#f92672>=</span> <span style=color:#e6db74>&#39;day_of_week&#39;</span>, columns <span style=color:#f92672>=</span> <span style=color:#e6db74>&#39;hour&#39;</span>, aggfunc<span style=color:#f92672>=</span><span style=color:#e6db74>&#39;sum&#39;</span>)
+day_hour <span style=color:#f92672>=</span> day_hour<span style=color:#f92672>.</span>reindex(([<span style=color:#e6db74>&#39;Monday&#39;</span>, <span style=color:#e6db74>&#39;Tuesday&#39;</span>, <span style=color:#e6db74>&#39;Wednesday&#39;</span>, <span style=color:#e6db74>&#39;Thursday&#39;</span>, <span style=color:#e6db74>&#39;Friday&#39;</span>, <span style=color:#e6db74>&#39;Saturday&#39;</span>, <span style=color:#e6db74>&#39;Sunday&#39;</span>]))
+</code></pre></div><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-python data-lang=python>p <span style=color:#f92672>=</span> sns<span style=color:#f92672>.</span>heatmap(data <span style=color:#f92672>=</span> day_hour, cbar_kws<span style=color:#f92672>=</span>{<span style=color:#e6db74>&#39;label&#39;</span>: <span style=color:#e6db74>&#39;Tweets per Hour&#39;</span>}, cmap<span style=color:#f92672>=</span><span style=color:#e6db74>&#39;flare&#39;</span>)
+p<span style=color:#f92672>.</span>set_title(<span style=color:#e6db74>&#34;When Does Donald Trump Like to Tweet?&#34;</span>)
+p<span style=color:#f92672>.</span>set_xlabel(<span style=color:#e6db74>&#39;Hour of Day (U.S. Eastern Time)&#39;</span>)
+p<span style=color:#f92672>.</span>set_ylabel(<span style=color:#e6db74>&#39;Day of Week&#39;</span>)
+plt<span style=color:#f92672>.</span>show()
+</code></pre></div><img src=/images/posts/trump/trump_twitter_nlp_47_0.png class=center><div style=margin-top:rem></div><p>This is more interesting. It appears that Trump does most of his tweeting during the work week and between the hours of 7 AM and 4 PM. This heatmap helps us to visualize the density of the tweet activity within this period, but it also shows us that aside from the early hours of the morning, Trump is generally quite active.</p><p>It is clear from our heatmap that Donald Trump does most of his tweeting during the workday. From these insights, I cannot help but ask: how does Donald Trump manage to get any work done?</p><h3 id=deleted-tweets>Deleted Tweets</h3><p>How often does Donald delete his tweets?</p><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-python data-lang=python>deleted_tweets <span style=color:#f92672>=</span> trump<span style=color:#f92672>.</span>groupby([<span style=color:#e6db74>&#39;isDeleted&#39;</span>])<span style=color:#f92672>.</span>id<span style=color:#f92672>.</span>count()
+deleted_tweets <span style=color:#f92672>=</span> pd<span style=color:#f92672>.</span>DataFrame({<span style=color:#e6db74>&#39;status&#39;</span>: [<span style=color:#e6db74>&#39;False&#39;</span>, <span style=color:#e6db74>&#39;True&#39;</span>], <span style=color:#e6db74>&#39;count&#39;</span>:deleted_tweets<span style=color:#f92672>.</span>values})
+<span style=color:#66d9ef>print</span>(deleted_tweets)
+</code></pre></div><pre><code>  status  count
+0  False  54050
+1   True   1040
+</code></pre><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-python data-lang=python>p <span style=color:#f92672>=</span> sns<span style=color:#f92672>.</span>barplot(data <span style=color:#f92672>=</span> deleted_tweets, x <span style=color:#f92672>=</span> <span style=color:#e6db74>&#39;count&#39;</span>, y <span style=color:#f92672>=</span> <span style=color:#e6db74>&#39;status&#39;</span>, orient<span style=color:#f92672>=</span><span style=color:#e6db74>&#39;h&#39;</span>, palette<span style=color:#f92672>=</span><span style=color:#e6db74>&#39;muted&#39;</span>)
+p<span style=color:#f92672>.</span>set_title(<span style=color:#e6db74>&#34;How Many of Donald Trump&#39;s Tweets Get Deleted?&#34;</span>)
+p<span style=color:#f92672>.</span>set_xlabel(<span style=color:#e6db74>&#39;Number of Tweets&#39;</span>)
+p<span style=color:#f92672>.</span>set_ylabel(<span style=color:#e6db74>&#39;Tweet Deleted&#39;</span>)
+plt<span style=color:#f92672>.</span>show()
+</code></pre></div><img src=/images/posts/trump/trump_twitter_nlp_52_0.png class=center><div style=margin-top:rem></div><h3 id=deleted-tweets-over-time>Deleted Tweets over Time</h3><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-python data-lang=python><span style=color:#75715e># Creating a pivot table so that we can aggregate data based on month of tweet and whether the tweet has been deleted</span>
+deleted_df <span style=color:#f92672>=</span> trump<span style=color:#f92672>.</span>groupby([<span style=color:#e6db74>&#39;isDeleted&#39;</span>, <span style=color:#e6db74>&#39;date_my&#39;</span>])<span style=color:#f92672>.</span>id<span style=color:#f92672>.</span>count()<span style=color:#f92672>.</span>reset_index()
+deleted_df <span style=color:#f92672>=</span> pd<span style=color:#f92672>.</span>pivot_table(data <span style=color:#f92672>=</span> deleted_df, index<span style=color:#f92672>=</span><span style=color:#e6db74>&#39;date_my&#39;</span>, columns<span style=color:#f92672>=</span><span style=color:#e6db74>&#39;isDeleted&#39;</span>, values <span style=color:#f92672>=</span> <span style=color:#e6db74>&#39;id&#39;</span>, aggfunc<span style=color:#f92672>=</span><span style=color:#e6db74>&#39;sum&#39;</span>)
+deleted_df <span style=color:#f92672>=</span> deleted_df<span style=color:#f92672>.</span>rename(columns<span style=color:#f92672>=</span>{<span style=color:#e6db74>&#39;f&#39;</span>:<span style=color:#e6db74>&#39;False&#39;</span>, <span style=color:#e6db74>&#39;t&#39;</span>:<span style=color:#e6db74>&#39;True&#39;</span>})
+<span style=color:#66d9ef>print</span>(deleted_df<span style=color:#f92672>.</span>head())
+</code></pre></div><pre><code>isDeleted  False  True
+date_my               
+2009-05     21.0   NaN
+2009-06     11.0   NaN
+2009-07      5.0   NaN
+2009-08      7.0   NaN
+2009-09      3.0   NaN
+</code></pre><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-python data-lang=python><span style=color:#75715e># Plotting the pivot table using pandas.DataFrame.plot method</span>
+p <span style=color:#f92672>=</span> deleted_df<span style=color:#f92672>.</span>plot()
+p<span style=color:#f92672>.</span>set_title(<span style=color:#e6db74>&#39;Deleted vs. Saved Tweets&#39;</span>)
+p<span style=color:#f92672>.</span>set_xlabel(<span style=color:#e6db74>&#39;Date&#39;</span>)
+p<span style=color:#f92672>.</span>set_ylabel(<span style=color:#e6db74>&#39;Number of Tweets&#39;</span>)
+plt<span style=color:#f92672>.</span>show()
+</code></pre></div><img src=/images/posts/trump/trump_twitter_nlp_55_0.png class=center><div style=margin-top:rem></div><p>Interesting! We can now see that it is very rare for Trump to delete his tweets. However, deletions have increased in recent years. This is unsurprising, as presidents have staff and advisors who will encourage them to delete unpopular opinions.</p><h3 id=retweets>Retweets</h3><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-python data-lang=python><span style=color:#75715e># Aggregating on retweet column</span>
+retweet_df <span style=color:#f92672>=</span> trump<span style=color:#f92672>.</span>groupby([<span style=color:#e6db74>&#39;isRetweet&#39;</span>, <span style=color:#e6db74>&#39;date_my&#39;</span>])<span style=color:#f92672>.</span>id<span style=color:#f92672>.</span>count()<span style=color:#f92672>.</span>reset_index()
+retweet_df <span style=color:#f92672>=</span> pd<span style=color:#f92672>.</span>pivot_table(data <span style=color:#f92672>=</span> retweet_df, index<span style=color:#f92672>=</span><span style=color:#e6db74>&#39;date_my&#39;</span>, columns<span style=color:#f92672>=</span><span style=color:#e6db74>&#39;isRetweet&#39;</span>, values <span style=color:#f92672>=</span> <span style=color:#e6db74>&#39;id&#39;</span>, aggfunc<span style=color:#f92672>=</span><span style=color:#e6db74>&#39;sum&#39;</span>)
+retweet_df <span style=color:#f92672>=</span> retweet_df<span style=color:#f92672>.</span>rename(columns<span style=color:#f92672>=</span>{<span style=color:#e6db74>&#39;f&#39;</span>:<span style=color:#e6db74>&#39;False&#39;</span>, <span style=color:#e6db74>&#39;t&#39;</span>:<span style=color:#e6db74>&#39;True&#39;</span>})
+<span style=color:#66d9ef>print</span>(retweet_df<span style=color:#f92672>.</span>head())
+</code></pre></div><pre><code>isRetweet  False  True
+date_my               
+2009-05     21.0   NaN
+2009-06     11.0   NaN
+2009-07      5.0   NaN
+2009-08      7.0   NaN
+2009-09      3.0   NaN
+</code></pre><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-python data-lang=python><span style=color:#75715e># Plotting the pivot table using pandas.DataFrame.plot method</span>
+p <span style=color:#f92672>=</span> retweet_df<span style=color:#f92672>.</span>plot()
+p<span style=color:#f92672>.</span>set_title(<span style=color:#e6db74>&#39;Retweets vs. Original Tweets&#39;</span>)
+p<span style=color:#f92672>.</span>set_xlabel(<span style=color:#e6db74>&#39;Date&#39;</span>)
+p<span style=color:#f92672>.</span>set_ylabel(<span style=color:#e6db74>&#39;Number of Tweets&#39;</span>)
+plt<span style=color:#f92672>.</span>show()
+</code></pre></div><img src=/images/posts/trump/trump_twitter_nlp_59_0.png class=center><div style=margin-top:rem></div><p>Overall, it appears that the majority of Trump&rsquo;s tweets are original. However, more recently, it appears that Trump retweets roughly as frequently as he writes his own tweets.</p><h2 id=applying-nlp-to-analyze-trumps-tweets>Applying NLP to Analyze Trump&rsquo;s Tweets</h2><p><strong>We will now perform a sentiment analysis using VADER</strong>, a sentiment analysis technique that we will explain shortly.</p><p>Before we begin our analysis, we will separate the tweets into two datasets: original tweets and retweets. As retweets are not written by Trump, we do not want to draw conclusions about Trump&rsquo;s own tweets from his retweets.</p><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-python data-lang=python><span style=color:#75715e># Split tweets into original tweets and retweets</span>
+original_tweets <span style=color:#f92672>=</span> trump[trump<span style=color:#f92672>.</span>isRetweet <span style=color:#f92672>==</span> <span style=color:#e6db74>&#39;f&#39;</span>]
+trump_retweets <span style=color:#f92672>=</span> trump[trump<span style=color:#f92672>.</span>isRetweet <span style=color:#f92672>==</span> <span style=color:#e6db74>&#39;t&#39;</span>]
+<span style=color:#66d9ef>print</span>(original_tweets<span style=color:#f92672>.</span>shape) <span style=color:#75715e># We still have over 45,000 original tweets to analyze!</span>
+<span style=color:#66d9ef>print</span>(original_tweets<span style=color:#f92672>.</span>head())
+</code></pre></div><pre><code>(45755, 15)
+                    id                                               text isRetweet isDeleted              device  ...   time  hour day_of_week  year month
+0    98454970654916608  Republicans and Democrats have both created ou...         f         f           TweetDeck  ...  14:07    14     Tuesday  2011    08
+1  1234653427789070336  I was thrilled to be back in the Great city of...         f         f  Twitter for iPhone  ...  20:34    20      Monday  2020    03
+3  1304875170860015617  The Unsolicited Mail In Ballot Scam is a major...         f         f  Twitter for iPhone  ...  16:10    16    Saturday  2020    09
+6  1315779944002199552  “I’m running as a proud Democrat, for the Sena...         f         f  Twitter for iPhone  ...  18:22    18      Monday  2020    10
+7  1223640662689689602  Getting a little exercise this morning! https:...         f         f  Twitter for iPhone  ...  11:14    11    Saturday  2020    02
+
+[5 rows x 15 columns]
+</code></pre><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-python data-lang=python><span style=color:#75715e># Creating variables containing only the tweets</span>
+dt_text <span style=color:#f92672>=</span> original_tweets<span style=color:#f92672>.</span>text
+rt_text <span style=color:#f92672>=</span> trump_retweets<span style=color:#f92672>.</span>text
+</code></pre></div><h3 id=cleaning-the-text-data>Cleaning the text data</h3><h4 id=noise-removal-and-tokenization>Noise Removal and Tokenization</h4><p>First, we will clean the text by removing punctuation and other noisy characters. We will also tokenize the strings into individual words</p><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-python data-lang=python><span style=color:#75715e># Creating a function that we can apply to each row of text</span>
+<span style=color:#66d9ef>def</span> <span style=color:#a6e22e>text_cleaner</span>(text):
+  <span style=color:#75715e># Use regular expressions to remove punctutation, nonstandard characters, and web links</span>
+  text <span style=color:#f92672>=</span> re<span style=color:#f92672>.</span>sub(<span style=color:#e6db74>r</span><span style=color:#e6db74>&#39;[\.\?\!\,\:\;\&#34;\)\(]|https.+|[^(a-zA-Z)\s]&#39;</span>, <span style=color:#e6db74>&#39;&#39;</span>, text)
+  text <span style=color:#f92672>=</span> text<span style=color:#f92672>.</span>lower()
+
+  <span style=color:#75715e># Tokenize the string into words</span>
+  words <span style=color:#f92672>=</span> word_tokenize(text)
+  <span style=color:#66d9ef>return</span> words
+</code></pre></div><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-python data-lang=python>dt_tokens <span style=color:#f92672>=</span> dt_text<span style=color:#f92672>.</span>apply(text_cleaner)
+rt_tokens <span style=color:#f92672>=</span> rt_text<span style=color:#f92672>.</span>apply(text_cleaner)
+</code></pre></div><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-python data-lang=python><span style=color:#66d9ef>print</span>(dt_tokens)
+</code></pre></div><pre><code>0        [republicans, and, democrats, have, both, crea...
+1        [i, was, thrilled, to, be, back, in, the, grea...
+3        [the, unsolicited, mail, in, ballot, scam, is,...
+6        [im, running, as, a, proud, democrat, for, the...
+7            [getting, a, little, exercise, this, morning]
+                               ...                        
+55074    [iran, never, won, a, war, but, never, lost, a...
+55078    [thank, you, to, the, dcexaminer, washington, ...
+55079    [one, of, my, greatest, honors, was, to, have,...
+55088    [just, signed, an, order, to, support, the, wo...
+55089    [suburban, women, want, safety, amp, security,...
+Name: text, Length: 45755, dtype: object
+</code></pre><p>The first token of every tweet is &lsquo;rt&rsquo;. Let&rsquo;s remove this</p><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-python data-lang=python><span style=color:#66d9ef>print</span>(rt_tokens)
+</code></pre></div><pre><code>2        [rt, cbsherridge, read, letter, to, surveillan...
+4        [rt, mzhemingway, very, friendly, telling, of,...
+5        [rt, whitehouse, president, realdonaldtrump, a...
+12                                         [rt, erictrump]
+13       [rt, gopchairwoman, the, economic, boom, conti...
+                               ...                        
+55083    [rt, heatherjones, dear, stupid, people, peace...
+55084    [rt, heatherjones, we, have, taken, appropriat...
+55085    [rt, randpaul, i, dont, know, why, joebiden, t...
+55086    [rt, elisestefanik, president, realdonaldtrump...
+55087    [rt, teamtrump, live, presidential, debate, de...
+Name: text, Length: 9335, dtype: object
+</code></pre><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-python data-lang=python><span style=color:#75715e># Removing the &#39;rt&#39; tokens</span>
+<span style=color:#66d9ef>def</span> <span style=color:#a6e22e>rt_cleaner</span>(lst):
+  lst <span style=color:#f92672>=</span> lst[<span style=color:#ae81ff>1</span>:]
+  <span style=color:#66d9ef>return</span> lst
+rt_tokens <span style=color:#f92672>=</span> rt_tokens<span style=color:#f92672>.</span>apply(rt_cleaner)
+<span style=color:#66d9ef>print</span>(rt_tokens)
+</code></pre></div><pre><code>2        [cbsherridge, read, letter, to, surveillance, ...
+4        [mzhemingway, very, friendly, telling, of, eve...
+5        [whitehouse, president, realdonaldtrump, annou...
+12                                             [erictrump]
+13       [gopchairwoman, the, economic, boom, continues...
+                               ...                        
+55083    [heatherjones, dear, stupid, people, peace, is...
+55084    [heatherjones, we, have, taken, appropriate, f...
+55085    [randpaul, i, dont, know, why, joebiden, think...
+55086    [elisestefanik, president, realdonaldtrump, ex...
+55087    [teamtrump, live, presidential, debate, debate...
+Name: text, Length: 9335, dtype: object
+</code></pre><h4 id=further-text-normalization-lemmatization-and-stopword-removal>Further Text Normalization: Lemmatization and Stopword Removal</h4><p>Next, we will lemmatize the words, effectively bringing them down to their root forms. We will do this instead of stemming, as stemming only removes affixes. To maximize the effectiveness of our lemmatization, we will also tag words with their part of speech (PoS).</p><p>At this step, we will further clean and normalize the text data by removing stopwords, which are words that do not provide meaningful information about the statements (in this case, our tweets).</p><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-python data-lang=python><span style=color:#75715e># Creating a function to pull the PoS for a particular word</span>
+<span style=color:#66d9ef>def</span> <span style=color:#a6e22e>get_pos</span>(word):
+  <span style=color:#75715e># synsets will return synonyms for the input word, and each synonym will include a part of speech</span>
+  pos <span style=color:#f92672>=</span> wordnet<span style=color:#f92672>.</span>synsets(word)
+
+  <span style=color:#75715e># We will now create a Counter() object, in which we will count the PoS tags for each of the synonyms in pos</span>
+  pos_counts <span style=color:#f92672>=</span> Counter()
+
+  <span style=color:#75715e># Next, we will pull the PoS of each synonym using the .pos() method</span>
+  pos_counts[<span style=color:#e6db74>&#34;n&#34;</span>] <span style=color:#f92672>=</span> len(  [ item <span style=color:#66d9ef>for</span> item <span style=color:#f92672>in</span> pos <span style=color:#66d9ef>if</span> item<span style=color:#f92672>.</span>pos()<span style=color:#f92672>==</span><span style=color:#e6db74>&#34;n&#34;</span>]  )
+  pos_counts[<span style=color:#e6db74>&#34;v&#34;</span>] <span style=color:#f92672>=</span> len(  [ item <span style=color:#66d9ef>for</span> item <span style=color:#f92672>in</span> pos <span style=color:#66d9ef>if</span> item<span style=color:#f92672>.</span>pos()<span style=color:#f92672>==</span><span style=color:#e6db74>&#34;v&#34;</span>]  )
+  pos_counts[<span style=color:#e6db74>&#34;a&#34;</span>] <span style=color:#f92672>=</span> len(  [ item <span style=color:#66d9ef>for</span> item <span style=color:#f92672>in</span> pos <span style=color:#66d9ef>if</span> item<span style=color:#f92672>.</span>pos()<span style=color:#f92672>==</span><span style=color:#e6db74>&#34;a&#34;</span>]  )
+  pos_counts[<span style=color:#e6db74>&#34;r&#34;</span>] <span style=color:#f92672>=</span> len(  [ item <span style=color:#66d9ef>for</span> item <span style=color:#f92672>in</span> pos <span style=color:#66d9ef>if</span> item<span style=color:#f92672>.</span>pos()<span style=color:#f92672>==</span><span style=color:#e6db74>&#34;r&#34;</span>]  )
+
+  <span style=color:#75715e># The most likely PoS is that which has the highest count in pos_counts</span>
+  most_likely <span style=color:#f92672>=</span> pos_counts<span style=color:#f92672>.</span>most_common(<span style=color:#ae81ff>1</span>)[<span style=color:#ae81ff>0</span>][<span style=color:#ae81ff>0</span>]
+  <span style=color:#66d9ef>return</span> most_likely
+</code></pre></div><p>Now that we have created a function that will determine the most likely part of speech for any given word, we can use the output of this function to tag words during lemmatization.</p><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-python data-lang=python><span style=color:#66d9ef>def</span> <span style=color:#a6e22e>text_cleaner_2</span>(words):
+  stop_words <span style=color:#f92672>=</span> stopwords<span style=color:#f92672>.</span>words(<span style=color:#e6db74>&#39;english&#39;</span>)
+  <span style=color:#75715e># Lemmatization with PoS tagging</span>
+  lemmatizer <span style=color:#f92672>=</span> WordNetLemmatizer()
+  words <span style=color:#f92672>=</span> [lemmatizer<span style=color:#f92672>.</span>lemmatize(word, get_pos(word)) <span style=color:#66d9ef>for</span> word <span style=color:#f92672>in</span> words <span style=color:#66d9ef>if</span> word <span style=color:#f92672>not</span> <span style=color:#f92672>in</span> stop_words]
+  <span style=color:#75715e># Stopword removal</span>
+  words <span style=color:#f92672>=</span> [word <span style=color:#66d9ef>for</span> word <span style=color:#f92672>in</span> words <span style=color:#66d9ef>if</span> word <span style=color:#f92672>not</span> <span style=color:#f92672>in</span> stop_words]
+  <span style=color:#66d9ef>return</span> words
+</code></pre></div><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-python data-lang=python>dt_tokens_norm <span style=color:#f92672>=</span> dt_tokens<span style=color:#f92672>.</span>apply(text_cleaner_2)
+rt_tokens_norm <span style=color:#f92672>=</span> rt_tokens<span style=color:#f92672>.</span>apply(text_cleaner_2)
+</code></pre></div><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-python data-lang=python><span style=color:#66d9ef>print</span>(dt_tokens_norm<span style=color:#f92672>.</span>head())
+</code></pre></div><pre><code>0    [republican, democrat, create, economic, problem]
+1    [thrill, back, great, city, charlotte, north, ...
+3    [unsolicited, mail, ballot, scam, major, threa...
+6    [im, run, proud, democrat, senate, sleepy, joe...
+7                     [get, little, exercise, morning]
+Name: text, dtype: object
+</code></pre><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-python data-lang=python><span style=color:#66d9ef>print</span>(rt_tokens_norm<span style=color:#f92672>.</span>head())
+</code></pre></div><pre><code>2     [cbsherridge, read, letter, surveillance, cour...
+4     [mzhemingway, friendly, tell, event, comeys, a...
+5     [whitehouse, president, realdonaldtrump, annou...
+12                                          [erictrump]
+13    [gopchairwoman, economic, boom, continue, k, j...
+Name: text, dtype: object
+</code></pre><p>We have now finished cleaning our text. Let us now compare a tweet before and after our cleaning.</p><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-python data-lang=python><span style=color:#66d9ef>print</span>(dt_text[<span style=color:#ae81ff>1</span>])
+</code></pre></div><pre><code>I was thrilled to be back in the Great city of Charlotte, North Carolina with thousands of hardworking American Patriots who love our Country, cherish our values, respect our laws, and always put AMERICA FIRST! Thank you for a wonderful evening!! #KAG2020 https://t.co/dNJZfRsl9y
+</code></pre><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-python data-lang=python><span style=color:#66d9ef>print</span>(dt_tokens_norm[<span style=color:#ae81ff>1</span>])
+</code></pre></div><pre><code>['thrill', 'back', 'great', 'city', 'charlotte', 'north', 'carolina', 'thousand', 'hardworking', 'american', 'patriot', 'love', 'country', 'cherish', 'value', 'respect', 'law', 'always', 'put', 'america', 'first', 'thank', 'wonderful', 'evening', 'kag']
+</code></pre><p>As you can see, the text looks very different from its initial state but still manages to convey the meaning of the original tweet.</p><h3 id=n-grams>N-grams</h3><p>Before we move on to sentiment analysis, let&rsquo;s take a quick look at the most common N-grams in each of our datasets. N-grams are sequences of N-terms found in the text data, and in this case we will be focusing on bigrams (2-grams) and trigrams (3-grams), as these are able to convey some information about the dataset without being too specific.</p><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-python data-lang=python><span style=color:#75715e>#Unpacking the list of words</span>
+dt_words <span style=color:#f92672>=</span> [item <span style=color:#66d9ef>for</span> sublist <span style=color:#f92672>in</span> dt_tokens_norm<span style=color:#f92672>.</span>to_list() <span style=color:#66d9ef>for</span> item <span style=color:#f92672>in</span> sublist]
+rt_words <span style=color:#f92672>=</span> [item <span style=color:#66d9ef>for</span> sublist <span style=color:#f92672>in</span> rt_tokens_norm<span style=color:#f92672>.</span>to_list() <span style=color:#66d9ef>for</span> item <span style=color:#f92672>in</span> sublist]
+<span style=color:#66d9ef>print</span>(dt_words[:<span style=color:#ae81ff>10</span>])
+</code></pre></div><pre><code>['republican', 'democrat', 'create', 'economic', 'problem', 'thrill', 'back', 'great', 'city', 'charlotte']
+</code></pre><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-python data-lang=python><span style=color:#75715e># Creating the bigrams and trigrams</span>
+dt_trigrams <span style=color:#f92672>=</span> (pd<span style=color:#f92672>.</span>Series(nltk<span style=color:#f92672>.</span>ngrams(dt_words, <span style=color:#ae81ff>3</span>))<span style=color:#f92672>.</span>value_counts())[:<span style=color:#ae81ff>10</span>]
+dt_bigrams <span style=color:#f92672>=</span> (pd<span style=color:#f92672>.</span>Series(nltk<span style=color:#f92672>.</span>ngrams(dt_words, <span style=color:#ae81ff>2</span>))<span style=color:#f92672>.</span>value_counts())[:<span style=color:#ae81ff>10</span>]
+
+rt_trigrams <span style=color:#f92672>=</span> (pd<span style=color:#f92672>.</span>Series(nltk<span style=color:#f92672>.</span>ngrams(rt_words, <span style=color:#ae81ff>3</span>))<span style=color:#f92672>.</span>value_counts())[:<span style=color:#ae81ff>10</span>]
+rt_bigrams <span style=color:#f92672>=</span> (pd<span style=color:#f92672>.</span>Series(nltk<span style=color:#f92672>.</span>ngrams(rt_words, <span style=color:#ae81ff>2</span>))<span style=color:#f92672>.</span>value_counts())[:<span style=color:#ae81ff>10</span>]
+</code></pre></div><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-python data-lang=python><span style=color:#75715e># Concatenating bigrams and trigrams to plot on a single graph</span>
+dt_ngrams <span style=color:#f92672>=</span> pd<span style=color:#f92672>.</span>concat([dt_bigrams, dt_trigrams])
+rt_ngrams <span style=color:#f92672>=</span> pd<span style=color:#f92672>.</span>concat([rt_bigrams, rt_trigrams])
+</code></pre></div><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-python data-lang=python>fig, ax <span style=color:#f92672>=</span> plt<span style=color:#f92672>.</span>subplots(<span style=color:#ae81ff>1</span>, <span style=color:#ae81ff>2</span>, figsize <span style=color:#f92672>=</span> (<span style=color:#ae81ff>10</span>,<span style=color:#ae81ff>20</span>), gridspec_kw<span style=color:#f92672>=</span>{<span style=color:#e6db74>&#39;width_ratios&#39;</span>:[<span style=color:#ae81ff>1</span>,<span style=color:#ae81ff>1</span>], <span style=color:#e6db74>&#39;wspace&#39;</span>:<span style=color:#ae81ff>0.1</span>, <span style=color:#e6db74>&#39;hspace&#39;</span>:<span style=color:#ae81ff>0.1</span>})
+bar_ax <span style=color:#f92672>=</span> ax[<span style=color:#ae81ff>0</span>]
+dt_ngrams[::<span style=color:#f92672>-</span><span style=color:#ae81ff>1</span>]<span style=color:#f92672>.</span>plot<span style=color:#f92672>.</span>barh(ax <span style=color:#f92672>=</span> bar_ax, color <span style=color:#f92672>=</span> <span style=color:#e6db74>&#39;lightcoral&#39;</span>)
+bar_ax<span style=color:#f92672>.</span>set_xlim(bar_ax<span style=color:#f92672>.</span>get_xlim()[::<span style=color:#f92672>-</span><span style=color:#ae81ff>1</span>])
+bar_ax<span style=color:#f92672>.</span>yaxis<span style=color:#f92672>.</span>set_label_position(<span style=color:#e6db74>&#34;left&#34;</span>)
+bar_ax<span style=color:#f92672>.</span>xaxis<span style=color:#f92672>.</span>tick_top()
+bar_ax<span style=color:#f92672>.</span>xaxis<span style=color:#f92672>.</span>set_label_position(<span style=color:#e6db74>&#34;top&#34;</span>)
+bar_ax<span style=color:#f92672>.</span>set_xlabel(<span style=color:#e6db74>&#39;Bigram/Trigram Count - Trump Tweets&#39;</span>)
+bar_ax<span style=color:#f92672>.</span>set_ylabel(<span style=color:#e6db74>&#39;&#39;</span>)
+
+bar_ax <span style=color:#f92672>=</span> ax[<span style=color:#ae81ff>1</span>]
+rt_ngrams[::<span style=color:#f92672>-</span><span style=color:#ae81ff>1</span>]<span style=color:#f92672>.</span>plot<span style=color:#f92672>.</span>barh(ax <span style=color:#f92672>=</span> bar_ax, color <span style=color:#f92672>=</span> <span style=color:#e6db74>&#39;cornflowerblue&#39;</span>)
+bar_ax<span style=color:#f92672>.</span>set_xlim(bar_ax<span style=color:#f92672>.</span>get_xlim())
+bar_ax<span style=color:#f92672>.</span>yaxis<span style=color:#f92672>.</span>set_label_position(<span style=color:#e6db74>&#34;left&#34;</span>)
+bar_ax<span style=color:#f92672>.</span>xaxis<span style=color:#f92672>.</span>tick_top()
+bar_ax<span style=color:#f92672>.</span>yaxis<span style=color:#f92672>.</span>tick_right()
+bar_ax<span style=color:#f92672>.</span>xaxis<span style=color:#f92672>.</span>set_label_position(<span style=color:#e6db74>&#34;top&#34;</span>)
+bar_ax<span style=color:#f92672>.</span>set_xlabel(<span style=color:#e6db74>&#39;Bigram/Trigram Count - Trump Retweets&#39;</span>)
+bar_ax<span style=color:#f92672>.</span>set_ylabel(<span style=color:#e6db74>&#39;&#39;</span>)
+
+plt<span style=color:#f92672>.</span>show()
+</code></pre></div><img src=/images/posts/trump/trump_twitter_nlp_92_0.png class=center><div style=margin-top:rem></div><h3 id=vader-sentiment-analysis>VADER Sentiment Analysis</h3><p><a href=https://github.com/cjhutto/vaderSentiment>VADER</a> (<strong>Valence Aware Dictionary and sEntiment Reasoner</strong>) is a sentiment analysis tool that is specifically tuned for the analysis of social media. <strong>VADER works by not only taking into consideration the words that are used in texts (in our case, tweets), but also takes into the context in which words are used to determine whether or not words have a positive, neutral, or negative meaning.</strong> The algorithm also considers use of punctuation, such as exclamation marks, as a factor in determining the degree of a sentiment.</p><p>VADER was specifically developed for the analysis of sentiment in the context of social media, so we can expect it to be one of the most effective tools for this purpose.</p><p>We will use the VADER analysis tool, available through NLTK, to analyze the Trump&rsquo;s sentiment in his tweets over time.</p><p>We will first take a quick look at the sentiment analysis of Trump&rsquo;s entire Twitter archive, but we will then shift our attention to the period from 2015-Present, as it is during this period that Donald Trump has become involved in American politics.</p><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-python data-lang=python><span style=color:#75715e># Initialize the VADER sentiment analyzer object</span>
+vader_analyzer <span style=color:#f92672>=</span> SentimentIntensityAnalyzer()
+</code></pre></div><p>Our goal is to determine the sentiment of each tweet, so we will now create a function that will return the sentiment score for a particular string. We can then apply this function to our pandas dataframes. VADER determines the positivity, neutrality, and negativity of each string (in this case, each tweet) and represents each type of sentiment with a number between 0 and 1. The values are then used to calculate a compound score, where -1 is most negative, 0 is neutral, and +1 is most positive.</p><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-python data-lang=python><span style=color:#66d9ef>def</span> <span style=color:#a6e22e>sentiment_scores</span>(text):
+  score <span style=color:#f92672>=</span> vader_analyzer<span style=color:#f92672>.</span>polarity_scores(text)
+  <span style=color:#66d9ef>return</span> score
+</code></pre></div><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-python data-lang=python><span style=color:#75715e># VADER sentiment scores for Trump tweets</span>
+original_tweets[<span style=color:#e6db74>&#39;polarity_scores&#39;</span>] <span style=color:#f92672>=</span> original_tweets<span style=color:#f92672>.</span>text<span style=color:#f92672>.</span>apply(sentiment_scores)
+original_tweets[<span style=color:#e6db74>&#39;vader_compound&#39;</span>] <span style=color:#f92672>=</span> original_tweets<span style=color:#f92672>.</span>polarity_scores<span style=color:#f92672>.</span>apply(<span style=color:#66d9ef>lambda</span> x: x[<span style=color:#e6db74>&#39;compound&#39;</span>])
+original_tweets[<span style=color:#e6db74>&#39;vader_neg&#39;</span>] <span style=color:#f92672>=</span> original_tweets<span style=color:#f92672>.</span>polarity_scores<span style=color:#f92672>.</span>apply(<span style=color:#66d9ef>lambda</span> x: x[<span style=color:#e6db74>&#39;neg&#39;</span>])
+original_tweets[<span style=color:#e6db74>&#39;vader_neu&#39;</span>] <span style=color:#f92672>=</span> original_tweets<span style=color:#f92672>.</span>polarity_scores<span style=color:#f92672>.</span>apply(<span style=color:#66d9ef>lambda</span> x: x[<span style=color:#e6db74>&#39;neu&#39;</span>])
+original_tweets[<span style=color:#e6db74>&#39;vader_pos&#39;</span>] <span style=color:#f92672>=</span> original_tweets<span style=color:#f92672>.</span>polarity_scores<span style=color:#f92672>.</span>apply(<span style=color:#66d9ef>lambda</span> x: x[<span style=color:#e6db74>&#39;pos&#39;</span>])
+<span style=color:#66d9ef>print</span>(original_tweets<span style=color:#f92672>.</span>head())
+</code></pre></div><pre><code>                    id                                               text isRetweet isDeleted              device  ...                                    polarity_scores  vader_compound vader_neg vader_neu vader_pos
+0    98454970654916608  Republicans and Democrats have both created ou...         f         f           TweetDeck  ...  {'neg': 0.231, 'neu': 0.598, 'pos': 0.171, 'co...         -0.1779     0.231     0.598     0.171
+1  1234653427789070336  I was thrilled to be back in the Great city of...         f         f  Twitter for iPhone  ...  {'neg': 0.0, 'neu': 0.553, 'pos': 0.447, 'comp...          0.9792     0.000     0.553     0.447
+3  1304875170860015617  The Unsolicited Mail In Ballot Scam is a major...         f         f  Twitter for iPhone  ...  {'neg': 0.294, 'neu': 0.706, 'pos': 0.0, 'comp...         -0.9551     0.294     0.706     0.000
+6  1315779944002199552  “I’m running as a proud Democrat, for the Sena...         f         f  Twitter for iPhone  ...  {'neg': 0.093, 'neu': 0.813, 'pos': 0.093, 'co...          0.0000     0.093     0.813     0.093
+7  1223640662689689602  Getting a little exercise this morning! https:...         f         f  Twitter for iPhone  ...  {'neg': 0.0, 'neu': 1.0, 'pos': 0.0, 'compound...          0.0000     0.000     1.000     0.000
+
+[5 rows x 20 columns]
+</code></pre><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-python data-lang=python><span style=color:#75715e># Grouping sentiment scores by day to get average daily sentiment scores</span>
+dt_sentiment_dmy <span style=color:#f92672>=</span> original_tweets<span style=color:#f92672>.</span>vader_compound<span style=color:#f92672>.</span>groupby(original_tweets<span style=color:#f92672>.</span>date_dmy)<span style=color:#f92672>.</span>mean()<span style=color:#f92672>.</span>reset_index()
+dt_sentiment_dmy[<span style=color:#e6db74>&#39;date_dmy&#39;</span>] <span style=color:#f92672>=</span> dt_sentiment_dmy<span style=color:#f92672>.</span>date_dmy<span style=color:#f92672>.</span>apply(<span style=color:#66d9ef>lambda</span> x: dt<span style=color:#f92672>.</span>strptime(x, <span style=color:#e6db74>&#39;%Y-%m-</span><span style=color:#e6db74>%d</span><span style=color:#e6db74>&#39;</span>))
+</code></pre></div><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-python data-lang=python>date_plotter(dt_sentiment_dmy, <span style=color:#e6db74>&#39;date_dmy&#39;</span>, <span style=color:#e6db74>&#39;vader_compound&#39;</span>, increments<span style=color:#f92672>=</span><span style=color:#e6db74>&#39;year&#39;</span>, title <span style=color:#f92672>=</span> <span style=color:#e6db74>&#39;Trump Tweet Sentiment Since 2015 </span><span style=color:#ae81ff>\n</span><span style=color:#e6db74> (VADER Compound Score)&#39;</span>, xlabel<span style=color:#f92672>=</span><span style=color:#e6db74>&#39;Year&#39;</span>,ylabel<span style=color:#f92672>=</span><span style=color:#e6db74>&#39;Average Daily Sentiment &#39;</span>)
+</code></pre></div><img src=/images/posts/trump/trump_twitter_nlp_99_0.png class=center><div style=margin-top:rem></div><h4 id=presidential-years-2015-present>Presidential Years (2015-Present)</h4><p>Now that we have analyzed the sentiment of the entire Trump Twitter archive, let&rsquo;s take a more focused look on the past few years, in which Donald Trump has become a political figure. To do so, we will now consider tweets since 2015, as Trump formally announced his first presidential campaign in June of 2015.</p><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-python data-lang=python><span style=color:#75715e># First, we need to convert the year column to integer type</span>
+original_tweets[<span style=color:#e6db74>&#39;year&#39;</span>] <span style=color:#f92672>=</span> pd<span style=color:#f92672>.</span>to_numeric(original_tweets<span style=color:#f92672>.</span>year)
+<span style=color:#75715e># We can now select a subset of the data for the years of interest</span>
+presidency_tweets <span style=color:#f92672>=</span> original_tweets[original_tweets<span style=color:#f92672>.</span>year <span style=color:#f92672>&gt;=</span> <span style=color:#ae81ff>2015</span>]
+<span style=color:#66d9ef>print</span>(presidency_tweets<span style=color:#f92672>.</span>year<span style=color:#f92672>.</span>value_counts())
+</code></pre></div><pre><code>2015    7530
+2020    5439
+2019    4939
+2016    4035
+2018    3107
+2017    2292
+Name: year, dtype: int64
+</code></pre><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-python data-lang=python>presidency_tweets_sent <span style=color:#f92672>=</span> presidency_tweets[[<span style=color:#e6db74>&#39;vader_pos&#39;</span>, <span style=color:#e6db74>&#39;vader_neu&#39;</span>, <span style=color:#e6db74>&#39;vader_neg&#39;</span>, <span style=color:#e6db74>&#39;vader_compound&#39;</span>]]<span style=color:#f92672>.</span>groupby(presidency_tweets<span style=color:#f92672>.</span>date_dmy)<span style=color:#f92672>.</span>mean()<span style=color:#f92672>.</span>reset_index()
+<span style=color:#66d9ef>print</span>(presidency_tweets_sent<span style=color:#f92672>.</span>describe())
+</code></pre></div><pre><code>         vader_pos    vader_neu    vader_neg  vader_compound
+count  2113.000000  2113.000000  2113.000000     2113.000000
+mean      0.176317     0.747679     0.076004        0.204113
+std       0.075179     0.073817     0.049175        0.255197
+min       0.000000     0.264000     0.000000       -0.966500
+25%       0.130625     0.707966     0.041000        0.049460
+50%       0.170313     0.750105     0.071833        0.208300
+75%       0.217273     0.788600     0.106000        0.363158
+max       0.736000     1.000000     0.405000        0.952300
+</code></pre><p>We can now use the function we created earlier to visualize the sentiment over time and assess its trend.</p><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-python data-lang=python>date_plotter_sns(presidency_tweets_sent, x <span style=color:#f92672>=</span> <span style=color:#e6db74>&#39;date_dmy&#39;</span> , y<span style=color:#f92672>=</span> <span style=color:#e6db74>&#39;vader_compound&#39;</span>,
+                 title<span style=color:#f92672>=</span><span style=color:#e6db74>&#39;Trump Twitter Sentiment (2015-Present)&#39;</span>,
+                 xlabel<span style=color:#f92672>=</span><span style=color:#e6db74>&#39;Date&#39;</span>, ylabel<span style=color:#f92672>=</span><span style=color:#e6db74>&#39;VADER Compound Sentiment Score&#39;</span>, increments <span style=color:#f92672>=</span> <span style=color:#e6db74>&#39;year&#39;</span>)
+</code></pre></div><img src=/images/posts/trump/trump_twitter_nlp_105_0.png class=center><div style=margin-top:rem></div><p>While our regression curve suggests that Trump&rsquo;s sentiment on Twitter has gradually become more negative, the sentiment remains positive overall.</p><h4 id=positive-neutral-and-negative-vader-scores>Positive, Neutral, and Negative VADER Scores</h4><p>To compute the compound score, VADER gives each text source three scores: positive, neutral, and negative. Each score represents the proportion of the sentiment that is either positive, neutral, or negative, and thus these three scores should add up to 1 for each source.</p><p>In this next section, we will look at the average daily scores of Trump&rsquo;s tweets and use the VADER system to visualize positivity, neutrality, and negativity in the tweets over time.</p><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-python data-lang=python><span style=color:#75715e># We can now use the multiplotter function to create a graph that represents the positive, neutral, and negative sentiments</span>
+multiplotter(presidency_tweets_sent, x <span style=color:#f92672>=</span> <span style=color:#e6db74>&#39;date_dmy&#39;</span> ,
+             y<span style=color:#f92672>=</span> [<span style=color:#e6db74>&#39;vader_pos&#39;</span>, <span style=color:#e6db74>&#39;vader_neu&#39;</span>, <span style=color:#e6db74>&#39;vader_neg&#39;</span>])
+</code></pre></div><img src=/images/posts/trump/trump_twitter_nlp_108_0.png class=center><div style=margin-top:rem></div><p>Visualizing the components that make up the VADER component score allows us to see under the hood and understand why Trump&rsquo;s tweets have been labeled as slightly positive overall.</p><p>The data before us suggests that overall, the daily average sentiment is quite neutral. Additionally, the overall probability of tweets being positive or negative is relatively low.</p><p>This, however, does not show us the full picture. Yes, the average is quite neutral, but many tweets are at least moderately positive or negative. Let&rsquo;s use histograms to see the distributions of sentiment scores during Trump&rsquo;s presidency.</p><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-python data-lang=python>fig, ax <span style=color:#f92672>=</span> plt<span style=color:#f92672>.</span>subplots()
+sns<span style=color:#f92672>.</span>histplot(presidency_tweets_sent[<span style=color:#e6db74>&#39;vader_compound&#39;</span>], ax<span style=color:#f92672>=</span>ax, color<span style=color:#f92672>=</span><span style=color:#e6db74>&#39;b&#39;</span>, binwidth<span style=color:#f92672>=</span><span style=color:#ae81ff>0.10</span>, stat<span style=color:#f92672>=</span><span style=color:#e6db74>&#39;density&#39;</span>)
+plt<span style=color:#f92672>.</span>legend([<span style=color:#e6db74>&#39;Compound VADER Score&#39;</span>])
+ax<span style=color:#f92672>.</span>set_xlabel(<span style=color:#e6db74>&#39;VADER Score&#39;</span>)
+ax<span style=color:#f92672>.</span>set_xlim(<span style=color:#f92672>-</span><span style=color:#ae81ff>1</span>,<span style=color:#ae81ff>1</span>)
+plt<span style=color:#f92672>.</span>title(<span style=color:#e6db74>&#39;Distribution of Compound Vader Scores for Trump Tweets (2015-Present)&#39;</span>);
+</code></pre></div><img src=/images/posts/trump/trump_twitter_nlp_110_0.png class=center><div style=margin-top:rem></div><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-python data-lang=python>fig, ax <span style=color:#f92672>=</span> plt<span style=color:#f92672>.</span>subplots()
+sns<span style=color:#f92672>.</span>histplot(presidency_tweets_sent[<span style=color:#e6db74>&#39;vader_pos&#39;</span>], ax<span style=color:#f92672>=</span>ax, color<span style=color:#f92672>=</span><span style=color:#e6db74>&#39;g&#39;</span>, binwidth<span style=color:#f92672>=</span><span style=color:#ae81ff>0.10</span>, stat<span style=color:#f92672>=</span><span style=color:#e6db74>&#39;density&#39;</span>)
+sns<span style=color:#f92672>.</span>histplot(presidency_tweets_sent[<span style=color:#e6db74>&#39;vader_neg&#39;</span>], ax<span style=color:#f92672>=</span>ax, color<span style=color:#f92672>=</span><span style=color:#e6db74>&#39;r&#39;</span>, binwidth<span style=color:#f92672>=</span><span style=color:#ae81ff>0.10</span>, stat<span style=color:#f92672>=</span><span style=color:#e6db74>&#39;density&#39;</span>)
+plt<span style=color:#f92672>.</span>legend([<span style=color:#e6db74>&#39;Positive VADER Score&#39;</span>, <span style=color:#e6db74>&#39;Negative VADER Score&#39;</span>])
+ax<span style=color:#f92672>.</span>set_xlabel(<span style=color:#e6db74>&#39;VADER Score&#39;</span>)
+ax<span style=color:#f92672>.</span>set_xlim(<span style=color:#ae81ff>0</span>,<span style=color:#ae81ff>1</span>)
+plt<span style=color:#f92672>.</span>title(<span style=color:#e6db74>&#39;Distribution of Positive and Negative Vader Scores for Trump Tweets (2015-Present)&#39;</span>);
+</code></pre></div><img src=/images/posts/trump/trump_twitter_nlp_111_0.png class=center><div style=margin-top:rem></div><p>Our histograms support our findings from our time series analysis, showing that Trump&rsquo;s tweets are generally more positive than they are negative in sentiment.</p><h2 id=discussion>Discussion</h2><h3 id=patterns-and-trends>Patterns and Trends</h3><p>In this project, we performed an in-depth analysis and visualization of Donald Trump&rsquo;s Twitter history to uncover patterns and trends in his activity. We found that, as we expected, Donald Trump is incredibly active on Twitter. Surprisingly, Trump&rsquo;s Twitter use appears to have been highest from 2013-2015, and significantly decreased in the following years. However, in the past 2 years, Trump&rsquo;s Twitter activity has seen a consistent upward trend and is close to his peak activity.</p><h3 id=sentiment-analysis>Sentiment Analysis</h3><p>In addition to data analysis and visualization, we also used the VADER sentiment analysis tool to analyze trends in the sentiment of Donald Trump&rsquo;s Twitter. While individual tweets varied greatly in their sentiment, our analysis found that <strong>over time, Trump&rsquo;s tweets have on average had a slightly positive sentiment.</strong> This is a very interesting finding, as Trump&rsquo;s twitter has been a subject of great controversy, especially during his presidency. Trump has, after all, been accused of <a href=https://www.cnn.com/2020/06/23/tech/trump-twitter-violence-warning/index.html>inciting violence through Twitter</a> on multiple occasions, and so one would expect that his tweets on the whole have a negative, rather than a positive, sentiment.</p><p>The findings of this project raise interesting questions regarding our benchmarks for sentiment. Yes, VADER showed us that over time, Trump&rsquo;s tweets were generally neutral, even slightly positive. However, we also see that <strong>many of Trump&rsquo;s tweets were negative</strong>. Although the positive is more frequent than the negative, we have to ask ourselves: to what extent can the positive make up for the negative? We can see from the compound scores that some of Trump&rsquo;s tweets were extremely negative, and although these are a minority, they are of greater significance than extremely positive tweets. However, the answer to this question is up for each of us to decide.</p><p>Although much certainly remains to be learned, this analysis helped to provide some insights into the controversial Twitter presence of Donald Trump, and thankfully, turned out to be a very interesting and insightful undertaking.</p></div><div class=btn-improve-page><a href=https://github.com/naingthet/naingthet.github.io/edit/master/content/posts/trump/trump.md><i class="fas fa-code-branch"></i>Improve this page</a></div><hr><div class="row next-prev-navigator"><div class="col-md-6 previous-article"><a href=/posts/house-prices/house-prices/ class="btn btn-outline-info"><span><i class="fas fa-chevron-circle-left"></i>Prev</span><br><span>House Prices - Advanced Regression Techniques</span></a></div></div><hr></div></div></div></section><section class=toc-section id=toc-section><div class=toc-holder><h5 class="text-center pl-3">Table of Contents</h5><hr><div class=toc><nav id=TableOfContents><ul><li><a href=#introduction>Introduction</a></li><li><a href=#setup>Setup</a><ul><li><a href=#imports>Imports</a></li><li><a href=#loading-the-data>Loading the Data</a></li><li><a href=#utility-functions>Utility Functions</a><ul><li><a href=#date_plotter>date_plotter</a></li><li><a href=#date_plotter_sns>date_plotter_sns</a></li><li><a href=#multiplotter>multiplotter</a></li></ul></li></ul></li><li><a href=#visualization-setup>Visualization Setup</a></li><li><a href=#data-cleaning>Data Cleaning</a><ul><li><a href=#working-with-dates>Working with Dates</a></li></ul></li><li><a href=#exploratory-data-analysis-and-visualization>Exploratory Data Analysis and Visualization</a><ul><li><a href=#tweets-per-month>Tweets per Month</a></li><li><a href=#tweets-per-day>Tweets per Day</a></li><li><a href=#tweets-by-day-of-the-week>Tweets by Day of the Week</a></li><li><a href=#deleted-tweets>Deleted Tweets</a></li><li><a href=#deleted-tweets-over-time>Deleted Tweets over Time</a></li><li><a href=#retweets>Retweets</a></li></ul></li><li><a href=#applying-nlp-to-analyze-trumps-tweets>Applying NLP to Analyze Trump&rsquo;s Tweets</a><ul><li><a href=#cleaning-the-text-data>Cleaning the text data</a><ul><li><a href=#noise-removal-and-tokenization>Noise Removal and Tokenization</a></li><li><a href=#further-text-normalization-lemmatization-and-stopword-removal>Further Text Normalization: Lemmatization and Stopword Removal</a></li></ul></li><li><a href=#n-grams>N-grams</a></li><li><a href=#vader-sentiment-analysis>VADER Sentiment Analysis</a><ul><li><a href=#presidential-years-2015-present>Presidential Years (2015-Present)</a></li><li><a href=#positive-neutral-and-negative-vader-scores>Positive, Neutral, and Negative VADER Scores</a></li></ul></li></ul></li><li><a href=#discussion>Discussion</a><ul><li><a href=#patterns-and-trends>Patterns and Trends</a></li><li><a href=#sentiment-analysis>Sentiment Analysis</a></li></ul></li></ul></nav></div></div></section></div><footer class="container-fluid text-center align-content-center footer pb-2"><div class="container pt-5"><div class="row text-left"><div class="col-md-4 col-sm-12"><h5>Navigation</h5><ul><li class=nav-item><a class=smooth-scroll href=#about>About</a></li><li class=nav-item><a class=smooth-scroll href=#skills>Skills</a></li><li class=nav-item><a class=smooth-scroll href=#experiences>Experiences</a></li><li class=nav-item><a class=smooth-scroll href=#projects>Projects</a></li><li class=nav-item><a class=smooth-scroll href=#recent-posts>Recent Posts</a></li></ul></div><div class="col-md-4 col-sm-12"><h5>Contact me:</h5><ul><li><span>Email:</span> <span>naing.thet97@gmail.com</span></li><li><span>Phone:</span> <span>+13109937103</span></li></ul></div></div></div><hr><div class=container><div class="row text-left"><div class=col-md-4><a id=theme href=https://github.com/hossainemruz/toha target=#><img src=/assets/images/inverted-logo.png>
+Toha</a></div><div class="col-md-4 text-center">© 2020 Copyright.</div><div class="col-md-4 text-right"><a id=hugo href=https://gohugo.io/>Powered by
+<img src=/assets/images/hugo-logo-wide.svg alt="Hugo Logo" height=18></a></div></div></div></footer><script src=/assets/js/jquery-3.4.1.min.js></script><script src=/assets/js/popper.min.js></script><script src=/assets/js/bootstrap.min.js></script><script src=/assets/js/navbar.js></script><script src=/assets/js/main.js></script><script src=https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.1/highlight.min.js></script><script src=/assets/js/single.js></script><script>hljs.initHighlightingOnLoad();</script></body></html>

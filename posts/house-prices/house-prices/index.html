@@ -1,0 +1,481 @@
+<!doctype html><html><head><title>House Prices - Advanced Regression Techniques</title><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><meta http-equiv=x-ua-compatible content="ie=edge"><link rel=stylesheet href=/assets/css/bootstrap.min.css><link rel=stylesheet href=/assets/css/layouts/main.css><link rel=stylesheet href=/assets/css/style.css><link rel=stylesheet href=/assets/css/navigators/navbar.css><link href="https://fonts.googleapis.com/css2?family=Muli:wght@300;400;500;600" rel=stylesheet><link rel=stylesheet href=https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.11.2/css/all.min.css><link rel=icon type=image/png href=/assets/images/thet_round.png><link rel=stylesheet href=/assets/css/style.css><meta name=description content="Predicting House Prices with XGBoost and Other Advanced Regression Techniques"><link rel=stylesheet href=https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.1/styles/atom-one-dark.min.css><link rel=stylesheet href=/assets/css/layouts/single.css><link rel=stylesheet href=/assets/css/navigators/sidebar.css></head><body data-spy=scroll data-target=#TableOfContents data-offset=80><div class="container-fluid bg-dimmed wrapper"><nav class="navbar navbar-expand-xl top-navbar final-navbar shadow"><div class=container><button class="navbar-toggler navbar-light" id=sidebar-toggler type=button onclick=toggleSidebar()>
+<span class=navbar-toggler-icon></span></button>
+<a class=navbar-brand href=/><img src=/images/site/thet_round.png>Thet Naing</a>
+<button class="navbar-toggler navbar-light" id=toc-toggler type=button onclick=toggleTOC()>
+<span class=navbar-toggler-icon></span></button><div class="collapse navbar-collapse lang-selector" id=top-nav-items><ul class="navbar-nav ml-auto"></ul></div></div><img src=/images/site/thet_round.png class=d-none id=main-logo>
+<img src=/images/site/thet_round.png class=d-none id=inverted-logo></nav><section class=sidebar-section id=sidebar-section><div class=sidebar-holder><div class=sidebar id=sidebar><input type=text placeholder=Search data-search id=search-box><div class=sidebar-tree><ul class=tree id=tree><li id=list-heading><a href=/posts data-filter=all>Posts</a></li><div class=subtree><li><a href=/posts/fraud/fraud/>Credit Card Fraud Detection</a></li><li><a class=active href=/posts/house-prices/house-prices/>House Price Regression</a></li><li><a href=/posts/trump/trump/>Trump Twitter Analysis</a></li></div></ul></div></div></div></section><section class=content-section id=content-section><div class=content><div class="container p-0 read-area"><div class="hero-area col-sm-12" id=hero-area style=background-image:url(https://naingthet.github.io/images/posts/house-prices/houses.jpg)></div><div class=page-content><div class="author-profile ml-auto align-self-lg-center"><img class=rounded-circle src=/images/author/thet.png><h5 class=author-name>Thet Naing</h5><p>November 24, 2020</p></div><div class=title><h1>House Prices - Advanced Regression Techniques</h1></div><div class=post-content id=post-content><p><a href=https://github.com/naingthet/house-price-regression>Project GitHub Repository</a></p><h2 id=introduction>Introduction</h2><p>In this project, we will tackle the <a href=https://www.kaggle.com/c/house-prices-advanced-regression-techniques>Kaggle House Prices: Advanced Regression Techniques</a> competition. The goal of this project is to <strong>develop a robust and powerful regression model to predict house sale prices given 79 features describing homes in Ames, Iowa</strong>. The objective is to achieve the highest validation accuracy possible, without peeking at the test data or allowing the test data to influence our methodology.</p><h3 id=framework>Framework</h3><ol><li>Acquire the data</li><li>Manually clean the data using knowledge of dataset</li><li>Preprocess the data</li><li>Select a base model</li><li>Select optimal feature set</li><li>Tune model hyperparameters</li><li>Export and submit for scoring!</li></ol><h2 id=setup>Setup</h2><h3 id=libraries>Libraries</h3><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-python data-lang=python><span style=color:#75715e># Data loading</span>
+<span style=color:#f92672>import</span> urllib
+
+<span style=color:#75715e># Computation time</span>
+<span style=color:#f92672>import</span> time
+
+<span style=color:#75715e># Essential data science libraries</span>
+<span style=color:#f92672>import</span> pandas <span style=color:#f92672>as</span> pd
+<span style=color:#f92672>import</span> numpy <span style=color:#f92672>as</span> np
+<span style=color:#f92672>import</span> matplotlib.pyplot <span style=color:#f92672>as</span> mpl
+<span style=color:#f92672>import</span> matplotlib.pyplot <span style=color:#f92672>as</span> plt
+<span style=color:#f92672>import</span> seaborn <span style=color:#f92672>as</span> sns
+<span style=color:#f92672>from</span> scipy.stats <span style=color:#f92672>import</span> skew
+
+<span style=color:#75715e># Data processing and feature selection</span>
+<span style=color:#f92672>from</span> sklearn.pipeline <span style=color:#f92672>import</span> Pipeline
+<span style=color:#f92672>from</span> sklearn.impute <span style=color:#f92672>import</span> SimpleImputer
+<span style=color:#f92672>from</span> sklearn.preprocessing <span style=color:#f92672>import</span> StandardScaler, OneHotEncoder, RobustScaler
+<span style=color:#f92672>from</span> sklearn.compose <span style=color:#f92672>import</span> ColumnTransformer
+<span style=color:#f92672>from</span> sklearn.feature_selection <span style=color:#f92672>import</span> RFE, RFECV
+
+<span style=color:#75715e># Dimensionality Reduction</span>
+<span style=color:#f92672>from</span> sklearn.decomposition <span style=color:#f92672>import</span> PCA
+
+<span style=color:#75715e># Models</span>
+<span style=color:#f92672>from</span> sklearn.linear_model <span style=color:#f92672>import</span> LinearRegression, SGDRegressor, Ridge, Lasso
+<span style=color:#f92672>from</span> sklearn.tree <span style=color:#f92672>import</span> DecisionTreeRegressor
+<span style=color:#f92672>from</span> sklearn.ensemble <span style=color:#f92672>import</span> RandomForestRegressor, AdaBoostRegressor,\
+ExtraTreesRegressor
+<span style=color:#f92672>from</span> sklearn.neighbors <span style=color:#f92672>import</span> KNeighborsRegressor
+<span style=color:#f92672>from</span> sklearn.svm <span style=color:#f92672>import</span> SVR
+<span style=color:#f92672>from</span> xgboost <span style=color:#f92672>import</span> XGBRegressor
+
+<span style=color:#75715e># Model selection</span>
+<span style=color:#f92672>from</span> sklearn <span style=color:#f92672>import</span> metrics
+<span style=color:#f92672>from</span> sklearn.model_selection <span style=color:#f92672>import</span> cross_validate, ShuffleSplit, cross_val_score, GridSearchCV
+
+<span style=color:#75715e># Hyperparameter tuning and optimization</span>
+<span style=color:#f92672>from</span> hyperopt <span style=color:#f92672>import</span> hp, fmin, tpe, Trials, STATUS_OK
+<span style=color:#f92672>from</span> hyperopt.pyll <span style=color:#f92672>import</span> scope
+</code></pre></div><h3 id=graphing>Graphing</h3><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-python data-lang=python>sns<span style=color:#f92672>.</span>set_style(<span style=color:#e6db74>&#39;whitegrid&#39;</span>)
+plt<span style=color:#f92672>.</span>style<span style=color:#f92672>.</span>use(<span style=color:#e6db74>&#39;fivethirtyeight&#39;</span>)
+</code></pre></div><h3 id=utility-functions>Utility Functions</h3><p>Throughout this project we will perform cross validation frequently to assess our models. These functions will help us to reproduce our cross validation techniques quickly and accurately.</p><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-python data-lang=python><span style=color:#75715e># Shuffle data and return cross validation scores</span>
+
+<span style=color:#66d9ef>def</span> <span style=color:#a6e22e>cv_results</span>(model, X_train, y_train):
+  cv <span style=color:#f92672>=</span> ShuffleSplit(n_splits<span style=color:#f92672>=</span><span style=color:#ae81ff>5</span>, test_size<span style=color:#f92672>=</span><span style=color:#ae81ff>0.3</span>, random_state<span style=color:#f92672>=</span><span style=color:#ae81ff>0</span>)
+  results <span style=color:#f92672>=</span> cross_val_score(model, X_train, y_train, cv<span style=color:#f92672>=</span>cv, n_jobs<span style=color:#f92672>=-</span><span style=color:#ae81ff>1</span>, scoring<span style=color:#f92672>=</span><span style=color:#e6db74>&#39;neg_mean_squared_error&#39;</span>)
+  rmse <span style=color:#f92672>=</span> np<span style=color:#f92672>.</span>sqrt(<span style=color:#f92672>-</span>results)<span style=color:#f92672>.</span>mean()
+  <span style=color:#66d9ef>return</span> rmse
+
+<span style=color:#75715e># Function for printing results as well as model name and parameters</span>
+
+<span style=color:#66d9ef>def</span> <span style=color:#a6e22e>cv_results_print</span>(model, X_train, y_train):
+  start <span style=color:#f92672>=</span> time<span style=color:#f92672>.</span>time()
+  cv <span style=color:#f92672>=</span> ShuffleSplit(n_splits<span style=color:#f92672>=</span><span style=color:#ae81ff>5</span>, test_size<span style=color:#f92672>=</span><span style=color:#ae81ff>0.3</span>, random_state<span style=color:#f92672>=</span><span style=color:#ae81ff>0</span>)
+  results <span style=color:#f92672>=</span> cross_val_score(model, X_train, y_train, cv<span style=color:#f92672>=</span>cv, n_jobs<span style=color:#f92672>=-</span><span style=color:#ae81ff>1</span>, scoring<span style=color:#f92672>=</span><span style=color:#e6db74>&#39;neg_mean_squared_error&#39;</span>)
+  rmse <span style=color:#f92672>=</span> np<span style=color:#f92672>.</span>sqrt(<span style=color:#f92672>-</span>results)<span style=color:#f92672>.</span>mean()
+
+  model_name <span style=color:#f92672>=</span> model<span style=color:#f92672>.</span>__class__<span style=color:#f92672>.</span>__name__
+  model_params <span style=color:#f92672>=</span> model<span style=color:#f92672>.</span>get_params()
+  <span style=color:#66d9ef>print</span>(<span style=color:#e6db74>&#39;Model: {}&#39;</span><span style=color:#f92672>.</span>format(model_name))
+  <span style=color:#66d9ef>print</span>(<span style=color:#e6db74>&#39;Model Parameters: {}&#39;</span><span style=color:#f92672>.</span>format(model_params))
+  <span style=color:#66d9ef>print</span>(<span style=color:#e6db74>&#39;5 Fold CV RMSE: {:.4f}&#39;</span><span style=color:#f92672>.</span>format(rmse))
+  <span style=color:#66d9ef>print</span>(<span style=color:#e6db74>&#39;Computation Time: {:.2f}&#39;</span><span style=color:#f92672>.</span>format(time<span style=color:#f92672>.</span>time() <span style=color:#f92672>-</span> start))
+
+<span style=color:#66d9ef>def</span> <span style=color:#a6e22e>cv_results_10_print</span>(model, X_train, y_train):
+  start <span style=color:#f92672>=</span> time<span style=color:#f92672>.</span>time()
+  cv <span style=color:#f92672>=</span> ShuffleSplit(n_splits<span style=color:#f92672>=</span><span style=color:#ae81ff>10</span>, test_size<span style=color:#f92672>=</span><span style=color:#ae81ff>0.3</span>, random_state<span style=color:#f92672>=</span><span style=color:#ae81ff>0</span>)
+  results <span style=color:#f92672>=</span> cross_val_score(model, X_train, y_train, cv<span style=color:#f92672>=</span>cv, n_jobs<span style=color:#f92672>=-</span><span style=color:#ae81ff>1</span>, scoring<span style=color:#f92672>=</span><span style=color:#e6db74>&#39;neg_mean_squared_error&#39;</span>)
+  rmse <span style=color:#f92672>=</span> np<span style=color:#f92672>.</span>sqrt(<span style=color:#f92672>-</span>results)<span style=color:#f92672>.</span>mean()
+
+  model_name <span style=color:#f92672>=</span> model<span style=color:#f92672>.</span>__class__<span style=color:#f92672>.</span>__name__
+  model_params <span style=color:#f92672>=</span> model<span style=color:#f92672>.</span>get_params()
+  <span style=color:#66d9ef>print</span>(<span style=color:#e6db74>&#39;Model: {}&#39;</span><span style=color:#f92672>.</span>format(model_name))
+  <span style=color:#66d9ef>print</span>(<span style=color:#e6db74>&#39;Model Parameters: {}&#39;</span><span style=color:#f92672>.</span>format(model_params))
+  <span style=color:#66d9ef>print</span>(<span style=color:#e6db74>&#39;10 Fold CV RMSE: {:.4f}&#39;</span><span style=color:#f92672>.</span>format(rmse))
+  <span style=color:#66d9ef>print</span>(<span style=color:#e6db74>&#39;Computation Time: {:.2f}&#39;</span><span style=color:#f92672>.</span>format(time<span style=color:#f92672>.</span>time() <span style=color:#f92672>-</span> start))
+</code></pre></div><h3 id=loading-data>Loading Data</h3><p>The data for this project is provided by Kaggle and available through the Kaggle API. To make this notebook easily reproducible, I have uploaded the data to this project&rsquo;s GitHub repository, from which we will download the data.</p><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-python data-lang=python><span style=color:#75715e># Data description</span>
+descr <span style=color:#f92672>=</span> urllib<span style=color:#f92672>.</span>request<span style=color:#f92672>.</span>urlopen(<span style=color:#e6db74>&#39;https://raw.githubusercontent.com/naingthet/house-price-regression/gh-pages/data/data_description.txt&#39;</span>)
+<span style=color:#75715e># Uncomment the code below to print the data description</span>
+<span style=color:#75715e># for line in descr:</span>
+<span style=color:#75715e>#   decoded_line = line.decode(&#34;utf-8&#34;)</span>
+<span style=color:#75715e>#   print(decoded_line)</span>
+
+<span style=color:#75715e># Training data</span>
+train <span style=color:#f92672>=</span> pd<span style=color:#f92672>.</span>read_csv(<span style=color:#e6db74>&#39;https://raw.githubusercontent.com/naingthet/house-price-regression/gh-pages/data/train.csv&#39;</span>)
+<span style=color:#75715e># Test data</span>
+test <span style=color:#f92672>=</span> pd<span style=color:#f92672>.</span>read_csv(<span style=color:#e6db74>&#39;https://raw.githubusercontent.com/naingthet/house-price-regression/gh-pages/data/test.csv&#39;</span>)
+</code></pre></div><h2 id=data-cleaning-and-visualization>Data Cleaning and Visualization</h2><p>By previewing the dataset it is clear that we have a very large number of columns to work with, and many of these columns appear to have a small number of unique values.</p><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-python data-lang=python><span style=color:#66d9ef>print</span>(train<span style=color:#f92672>.</span>shape, test<span style=color:#f92672>.</span>shape)
+<span style=color:#66d9ef>print</span>(train<span style=color:#f92672>.</span>head())
+</code></pre></div><pre><code>(1460, 81) (1459, 80)
+   Id  MSSubClass MSZoning  ...  SaleType  SaleCondition SalePrice
+0   1          60       RL  ...        WD         Normal    208500
+1   2          20       RL  ...        WD         Normal    181500
+2   3          60       RL  ...        WD         Normal    223500
+3   4          70       RL  ...        WD        Abnorml    140000
+4   5          60       RL  ...        WD         Normal    250000
+
+[5 rows x 81 columns]
+</code></pre><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-python data-lang=python><span style=color:#75715e># Finding the columns with the highest proportion of missing values</span>
+train_null <span style=color:#f92672>=</span> train<span style=color:#f92672>.</span>isnull()<span style=color:#f92672>.</span>mean()<span style=color:#f92672>.</span>sort_values(ascending<span style=color:#f92672>=</span>False)<span style=color:#f92672>.</span>reset_index()[:<span style=color:#ae81ff>10</span>]
+
+<span style=color:#75715e>#Let&#39;s visualize this with a barplot</span>
+g<span style=color:#f92672>=</span> sns<span style=color:#f92672>.</span>catplot(data<span style=color:#f92672>=</span>train_null, y<span style=color:#f92672>=</span><span style=color:#e6db74>&#39;index&#39;</span>, x<span style=color:#f92672>=</span><span style=color:#ae81ff>0</span>, kind<span style=color:#f92672>=</span><span style=color:#e6db74>&#39;bar&#39;</span>, orient<span style=color:#f92672>=</span><span style=color:#e6db74>&#39;h&#39;</span>, height<span style=color:#f92672>=</span><span style=color:#ae81ff>5</span>, aspect<span style=color:#f92672>=</span><span style=color:#ae81ff>2.5</span>)
+g<span style=color:#f92672>.</span>set_axis_labels(<span style=color:#e6db74>&#39;Proportion of Null Values&#39;</span>, <span style=color:#e6db74>&#39;Column&#39;</span>)
+
+
+plt<span style=color:#f92672>.</span>show()
+</code></pre></div><p><strong>Null Values by Column</strong>
+<img src=/images/posts/house-prices/output_16_0.png class=center></p><div style=margin-top:rem></div><p>We can see that a few columns have very large proportions of their values missing. However, this may be misleading as some null values actually represent information.</p><h3 id=null-values-representing-0-or-none>Null Values Representing 0 or None</h3><p>According to the data description, some of our features have null values in place of 0 or &ldquo;None&rdquo;. For example, a null value in the &ldquo;Alley&rdquo; column means that the particular home does not have alley access and does not mean the value is missing. Before moving forward, we will fill in these null values to avoid losing information.</p><h3 id=null-values-representing-none>Null values representing &ldquo;None&rdquo;</h3><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-python data-lang=python>train[<span style=color:#e6db74>&#39;Alley&#39;</span>]<span style=color:#f92672>.</span>value_counts()
+</code></pre></div><pre><code>Grvl    50
+Pave    41
+Name: Alley, dtype: int64
+</code></pre><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-python data-lang=python>cols_none <span style=color:#f92672>=</span> [<span style=color:#e6db74>&#39;Alley&#39;</span>, <span style=color:#e6db74>&#39;BsmtCond&#39;</span>,
+            <span style=color:#e6db74>&#39;BsmtExposure&#39;</span>, <span style=color:#e6db74>&#39;BsmtFinType1&#39;</span>,
+            <span style=color:#e6db74>&#39;BsmtFinType2&#39;</span>, <span style=color:#e6db74>&#39;BsmtQual&#39;</span>, <span style=color:#e6db74>&#39;FireplaceQu&#39;</span>, <span style=color:#e6db74>&#39;GarageFinish&#39;</span>,
+            <span style=color:#e6db74>&#39;GarageQual&#39;</span>, <span style=color:#e6db74>&#39;GarageType&#39;</span>, <span style=color:#e6db74>&#39;GarageCond&#39;</span>, <span style=color:#e6db74>&#39;PoolQC&#39;</span>,
+            <span style=color:#e6db74>&#39;Fence&#39;</span>, <span style=color:#e6db74>&#39;MiscFeature&#39;</span>, <span style=color:#e6db74>&#39;MasVnrType&#39;</span>]
+
+<span style=color:#66d9ef>for</span> col <span style=color:#f92672>in</span> cols_none:
+  train[col] <span style=color:#f92672>=</span> train[col]<span style=color:#f92672>.</span>fillna(<span style=color:#e6db74>&#39;None&#39;</span>)
+  test[col] <span style=color:#f92672>=</span> test[col]<span style=color:#f92672>.</span>fillna(<span style=color:#e6db74>&#39;None&#39;</span>)
+</code></pre></div><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-python data-lang=python>train[<span style=color:#e6db74>&#39;Alley&#39;</span>]<span style=color:#f92672>.</span>value_counts()
+</code></pre></div><pre><code>None    1369
+Grvl      50
+Pave      41
+Name: Alley, dtype: int64
+</code></pre><h3 id=null-values-representing-0>Null values representing 0</h3><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-python data-lang=python>cols_zero <span style=color:#f92672>=</span> [<span style=color:#e6db74>&#39;GarageYrBlt&#39;</span>, <span style=color:#e6db74>&#39;GarageArea&#39;</span>,
+            <span style=color:#e6db74>&#39;GarageCars&#39;</span>, <span style=color:#e6db74>&#39;BsmtFinSF1&#39;</span>, <span style=color:#e6db74>&#39;BsmtUnfSF&#39;</span>, <span style=color:#e6db74>&#39;BsmtFinSF2&#39;</span>,
+             <span style=color:#e6db74>&#39;TotalBsmtSF&#39;</span>, <span style=color:#e6db74>&#39;BsmtFullBath&#39;</span>, <span style=color:#e6db74>&#39;BsmtHalfBath&#39;</span>, <span style=color:#e6db74>&#39;MasVnrArea&#39;</span>]
+
+<span style=color:#66d9ef>for</span> col <span style=color:#f92672>in</span> cols_zero:
+  train[col] <span style=color:#f92672>=</span> train[col]<span style=color:#f92672>.</span>fillna(<span style=color:#ae81ff>0</span>)
+  test[col] <span style=color:#f92672>=</span> test[col]<span style=color:#f92672>.</span>fillna(<span style=color:#ae81ff>0</span>)
+</code></pre></div><h3 id=adjusting-data-types>Adjusting data types</h3><p>We can see that the MSubClass variable is encoded numerically, but is actually categorical. Thus, we will transform this column into a categorical variable by changing the datatype to string. We will do this with a few columns that are actually categorical.</p><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-python data-lang=python>cols_to_str <span style=color:#f92672>=</span> [<span style=color:#e6db74>&#39;MSSubClass&#39;</span>, <span style=color:#e6db74>&#39;OverallCond&#39;</span>, <span style=color:#e6db74>&#39;YrSold&#39;</span>, <span style=color:#e6db74>&#39;MoSold&#39;</span>]
+
+<span style=color:#66d9ef>for</span> col <span style=color:#f92672>in</span> cols_to_str:
+  train[col] <span style=color:#f92672>=</span> train[col]<span style=color:#f92672>.</span>apply(str)
+  test[col] <span style=color:#f92672>=</span> test[col]<span style=color:#f92672>.</span>apply(str)
+
+train[cols_to_str]<span style=color:#f92672>.</span>dtypes
+</code></pre></div><pre><code>MSSubClass     object
+OverallCond    object
+YrSold         object
+MoSold         object
+dtype: object
+</code></pre><h3 id=removing-non-informative-features>Removing Non-informative Features</h3><p>We will now be removing columns that we expect will not be informative (i.e. those with many missing values. To make our lives easier, we will first drop these columns from the dataframes.</p><h4 id=missing-values>Missing Values</h4><p>At first glance, it appears that a few columns may almost entirely consist of missing values. While in some cases it would be useful to fill missing values, it may actually harm our predictive models if we impute missing values for a substantial portion of a column.</p><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-python data-lang=python><span style=color:#75715e># Finding the columns with the highest proportion of missing values</span>
+train_null <span style=color:#f92672>=</span> train<span style=color:#f92672>.</span>isnull()<span style=color:#f92672>.</span>mean()<span style=color:#f92672>.</span>sort_values(ascending<span style=color:#f92672>=</span>False)<span style=color:#f92672>.</span>reset_index()[:<span style=color:#ae81ff>10</span>]
+
+<span style=color:#75715e>#Let&#39;s visualize this with a barplot</span>
+g<span style=color:#f92672>=</span> sns<span style=color:#f92672>.</span>catplot(data<span style=color:#f92672>=</span>train_null, y<span style=color:#f92672>=</span><span style=color:#e6db74>&#39;index&#39;</span>, x<span style=color:#f92672>=</span><span style=color:#ae81ff>0</span>, kind<span style=color:#f92672>=</span><span style=color:#e6db74>&#39;bar&#39;</span>, orient<span style=color:#f92672>=</span><span style=color:#e6db74>&#39;h&#39;</span>, height<span style=color:#f92672>=</span><span style=color:#ae81ff>5</span>, aspect<span style=color:#f92672>=</span><span style=color:#ae81ff>2.5</span>)
+g<span style=color:#f92672>.</span>set_axis_labels(<span style=color:#e6db74>&#39;Column&#39;</span>, <span style=color:#e6db74>&#39;Proportion of Null Values&#39;</span>)
+
+
+plt<span style=color:#f92672>.</span>show()
+</code></pre></div><img src=/images/posts/house-prices/output_30_0.png class=center><div style=margin-top:rem></div><p>Since we have already filled in many null values, none of the columns have a very large proportion of missing values. However, the &lsquo;LotFrontage&rsquo; column still has some missing values that we can try to fill in. In this particular case, we can assume that the LotFrontage, or front yard space, of a particular home is generally similar to that of the surrounding homes, so we can impute the missing values using the median of the homes in the same neighborhood.</p><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-python data-lang=python><span style=color:#75715e># Here, we are grouping the data by neighborhood and using this grouping to transform the LotFrontage column</span>
+train[<span style=color:#e6db74>&#39;LotFrontage&#39;</span>] <span style=color:#f92672>=</span> train<span style=color:#f92672>.</span>groupby(<span style=color:#e6db74>&#39;Neighborhood&#39;</span>)<span style=color:#f92672>.</span>LotFrontage<span style=color:#f92672>.</span>transform(<span style=color:#66d9ef>lambda</span> row: row<span style=color:#f92672>.</span>fillna(row<span style=color:#f92672>.</span>median()))
+test[<span style=color:#e6db74>&#39;LotFrontage&#39;</span>] <span style=color:#f92672>=</span> test<span style=color:#f92672>.</span>groupby(<span style=color:#e6db74>&#39;Neighborhood&#39;</span>)<span style=color:#f92672>.</span>LotFrontage<span style=color:#f92672>.</span>transform(<span style=color:#66d9ef>lambda</span> row: row<span style=color:#f92672>.</span>fillna(row<span style=color:#f92672>.</span>median()))
+</code></pre></div><p>We will check the missing values one last time.</p><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-python data-lang=python><span style=color:#75715e># Finding the columns with the highest proportion of missing values</span>
+train_null <span style=color:#f92672>=</span> train<span style=color:#f92672>.</span>isnull()<span style=color:#f92672>.</span>mean()<span style=color:#f92672>.</span>sort_values(ascending<span style=color:#f92672>=</span>False)<span style=color:#f92672>.</span>reset_index()[:<span style=color:#ae81ff>10</span>]
+
+<span style=color:#75715e>#Let&#39;s visualize this with a barplot</span>
+g<span style=color:#f92672>=</span> sns<span style=color:#f92672>.</span>catplot(data<span style=color:#f92672>=</span>train_null, y<span style=color:#f92672>=</span><span style=color:#e6db74>&#39;index&#39;</span>, x<span style=color:#f92672>=</span><span style=color:#ae81ff>0</span>, kind<span style=color:#f92672>=</span><span style=color:#e6db74>&#39;bar&#39;</span>, orient<span style=color:#f92672>=</span><span style=color:#e6db74>&#39;h&#39;</span>, height<span style=color:#f92672>=</span><span style=color:#ae81ff>5</span>, aspect<span style=color:#f92672>=</span><span style=color:#ae81ff>2.5</span>)
+g<span style=color:#f92672>.</span>set_axis_labels(<span style=color:#e6db74>&#39;Column&#39;</span>, <span style=color:#e6db74>&#39;Proportion of Null Values&#39;</span>)
+
+
+plt<span style=color:#f92672>.</span>show()
+</code></pre></div><img src=/images/posts/house-prices/output_34_0.png class=center><div style=margin-top:rem></div><p>Now we only have missing values in the &lsquo;Electrical&rsquo; column, but this represents a very small proportion of the overall values. We will impute these values in the next step, when we use a Scikit-learn pipeline to transform our data.</p><p>Let&rsquo;s preview our dataframe one last time before we move on.</p><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-python data-lang=python><span style=color:#66d9ef>print</span>(train<span style=color:#f92672>.</span>head())
+</code></pre></div><pre><code>   Id MSSubClass MSZoning  LotFrontage  ...  YrSold SaleType SaleCondition SalePrice
+0   1         60       RL         65.0  ...    2008       WD        Normal    208500
+1   2         20       RL         80.0  ...    2007       WD        Normal    181500
+2   3         60       RL         68.0  ...    2008       WD        Normal    223500
+3   4         70       RL         60.0  ...    2006       WD       Abnorml    140000
+4   5         60       RL         84.0  ...    2008       WD        Normal    250000
+
+[5 rows x 81 columns]
+</code></pre><h4 id=correlated-features>Correlated Features</h4><p>Now that we have imputed many of our missing values, we will now use a correlation matrix to see how the variables are related.</p><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-python data-lang=python>fig, ax <span style=color:#f92672>=</span> plt<span style=color:#f92672>.</span>subplots(figsize <span style=color:#f92672>=</span> (<span style=color:#ae81ff>18</span>,<span style=color:#ae81ff>15</span>))
+sns<span style=color:#f92672>.</span>heatmap(train<span style=color:#f92672>.</span>corr(), vmin<span style=color:#f92672>=-</span><span style=color:#ae81ff>1</span>, vmax<span style=color:#f92672>=</span><span style=color:#ae81ff>1</span>, center<span style=color:#f92672>=</span><span style=color:#ae81ff>0</span>, cmap<span style=color:#f92672>=</span>sns<span style=color:#f92672>.</span>diverging_palette(<span style=color:#ae81ff>20</span>, <span style=color:#ae81ff>220</span>, n<span style=color:#f92672>=</span><span style=color:#ae81ff>200</span>), ax<span style=color:#f92672>=</span>ax)
+ax<span style=color:#f92672>.</span>set_xticklabels(ax<span style=color:#f92672>.</span>get_xticklabels(), rotation <span style=color:#f92672>=</span> <span style=color:#ae81ff>60</span>)
+plt<span style=color:#f92672>.</span>show()
+</code></pre></div><img src=/images/posts/house-prices/output_39_0.png class=center><div style=margin-top:rem></div><p>Here, the bottom row and the right column of the heatmap tell us how each of the features is correlated with the SalePrice output. We can see, for example, that LotArea is highly correlated with sale price, and this makes intuitive sense. However, as we move forward, we must consider that our features may have nonlinear relationships with the output variable (or one another), which this heatmap will not show.</p><p>Next, we can go one step further and map relationships that have a correlation above a certain value (in this case, we will use an absolute value of 0.7). This will make it easier for us to visualize the strong linear associations.</p><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-python data-lang=python>fig, ax <span style=color:#f92672>=</span> plt<span style=color:#f92672>.</span>subplots(figsize <span style=color:#f92672>=</span> (<span style=color:#ae81ff>18</span>,<span style=color:#ae81ff>15</span>))
+train_corr <span style=color:#f92672>=</span> abs(train<span style=color:#f92672>.</span>corr())
+sns<span style=color:#f92672>.</span>heatmap(train_corr <span style=color:#f92672>&gt;</span> <span style=color:#ae81ff>0.7</span>, cmap<span style=color:#f92672>=</span>plt<span style=color:#f92672>.</span>cm<span style=color:#f92672>.</span>Reds)
+ax<span style=color:#f92672>.</span>set_xticklabels(ax<span style=color:#f92672>.</span>get_xticklabels(), rotation <span style=color:#f92672>=</span> <span style=color:#ae81ff>60</span>)
+plt<span style=color:#f92672>.</span>show()
+</code></pre></div><img src=/images/posts/house-prices/output_42_0.png class=center><div style=margin-top:rem></div><p>Interestingly, we can see that only 2 of the input variables have correlations of at least 0.7 with the output variable. We also see that there are a few input features that are highly correlated.</p><p>At this point, we could remove one input feature from each pair of highly correlated input features. Doing so would avoid providing redundant data to our model.</p><p>While in many cases it would be useful to drop redundant features, this technique presents a challenge. When dropping one redundant feature from a pair, we would have to manually select the feature to drop. Additionally, we would drop the feature based on linear summary statistics, which do not tell the full story. With this in mind, we will keep all of these variables in our data, especially since we will be working with models that have feature selection capabilities (i.e. ensemble methods and tree methods) or regularization (i.e. Lasso and Ridge Regression) built in.</p><p>First we will take a look at the distribution of the output variables, as it may be useful to transform this variable.</p><h3 id=separating-x-and-y-values>Separating X and Y Values</h3><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-python data-lang=python>fig, ax <span style=color:#f92672>=</span> plt<span style=color:#f92672>.</span>subplots(figsize<span style=color:#f92672>=</span>(<span style=color:#ae81ff>10</span>,<span style=color:#ae81ff>6</span>))
+ax<span style=color:#f92672>.</span>hist(train[<span style=color:#e6db74>&#39;SalePrice&#39;</span>])
+<span style=color:#75715e>#sns.distplot(data=train, x=&#39;SalePrice&#39;)</span>
+ax<span style=color:#f92672>.</span>set_title(<span style=color:#e6db74>&#39;Distribution of Sale Price&#39;</span>)
+plt<span style=color:#f92672>.</span>show()
+</code></pre></div><img src=/images/posts/house-prices/output_46_0.png class=center><div style=margin-top:rem></div><p>We can see that the sale price has a bit of right skew and the data does not form a normal distribution. With this in mind, we will log transform the sale price values. Conveniently, Kaggle&rsquo;s scoring for this competition also uses a log-transformed output variable, so this will help us to estimate our model prediction scores as well.</p><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-python data-lang=python><span style=color:#75715e># Splitting train data into X and y</span>
+X_train <span style=color:#f92672>=</span> train<span style=color:#f92672>.</span>drop(<span style=color:#e6db74>&#39;SalePrice&#39;</span>, axis<span style=color:#f92672>=</span><span style=color:#ae81ff>1</span>)
+y_train <span style=color:#f92672>=</span> np<span style=color:#f92672>.</span>log1p(train[<span style=color:#e6db74>&#39;SalePrice&#39;</span>])
+<span style=color:#75715e># Log transforming the y values since this is how Kaggle scores the competition</span>
+
+
+<span style=color:#75715e># As we were not provided the y values for the test set, we will simply make a deep copy of the data</span>
+X_test <span style=color:#f92672>=</span> test<span style=color:#f92672>.</span>copy(deep<span style=color:#f92672>=</span>True)
+
+<span style=color:#66d9ef>print</span>(X_train<span style=color:#f92672>.</span>shape, y_train<span style=color:#f92672>.</span>shape, X_test<span style=color:#f92672>.</span>shape)
+</code></pre></div><pre><code>(1460, 80) (1460,) (1459, 80)
+</code></pre><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-python data-lang=python>fig, ax <span style=color:#f92672>=</span> plt<span style=color:#f92672>.</span>subplots(figsize<span style=color:#f92672>=</span>(<span style=color:#ae81ff>10</span>,<span style=color:#ae81ff>6</span>))
+ax<span style=color:#f92672>.</span>hist(y_train)
+<span style=color:#75715e>#sns.histplot(data=y_train)</span>
+ax<span style=color:#f92672>.</span>set_title(<span style=color:#e6db74>&#39;Distribution of log-transformed Sale Price&#39;</span>)
+plt<span style=color:#f92672>.</span>show()
+</code></pre></div><img src=/images/posts/house-prices/output_49_0.png class=center><div style=margin-top:rem></div><p>As we can see, the output now resembles a normal distribution, which will help our models to predict outcomes.</p><h3 id=preventing-data-leakage>Preventing Data Leakage</h3><p>We have now split the training data into X and Y datasets, but there are still a couple of changes we can make to make our data more robust.</p><p>First, we will drop the Id column because it does not provide any valuable information.</p><p>Next, we will drop the SaleType and SaleCondition columns to avoid data leakage. These variables were generated at the time of sale, meaning they provide information about the output variable that would not typically be available at the time of prediction. This is called data leakage.</p><p>It is important to consider the objective of this project. Our goal is to predict house prices based on the qualities of the house and neighborhood, not to guess the price of a house that has just been sold. While these variables would likely help us to achieve higher scores on the train set, the test set, and the Kaggle competition, we will exclude them because our goal is to build an accurate and robust model that can generalize to new, unseen test cases.</p><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-python data-lang=python><span style=color:#75715e># Dropping the ID column</span>
+<span style=color:#75715e># Dropping columns that may cause data leakage (e.g. those that hint to the outcome)</span>
+drop_cols <span style=color:#f92672>=</span> [<span style=color:#e6db74>&#39;Id&#39;</span>, <span style=color:#e6db74>&#39;SaleType&#39;</span>, <span style=color:#e6db74>&#39;SaleCondition&#39;</span>]
+X_train <span style=color:#f92672>=</span> X_train<span style=color:#f92672>.</span>drop(drop_cols, axis<span style=color:#f92672>=</span><span style=color:#ae81ff>1</span>)
+X_test <span style=color:#f92672>=</span> X_test<span style=color:#f92672>.</span>drop(drop_cols, axis<span style=color:#f92672>=</span><span style=color:#ae81ff>1</span>)
+<span style=color:#66d9ef>print</span>(X_train<span style=color:#f92672>.</span>shape, y_train<span style=color:#f92672>.</span>shape, X_test<span style=color:#f92672>.</span>shape)
+</code></pre></div><pre><code>(1460, 77) (1460,) (1459, 77)
+</code></pre><h3 id=data-transformation-pipeline>Data Transformation Pipeline</h3><p>Now that we have finished our initial data cleaning, we must preprocess it for our models. We now face two challenges:</p><ol><li>The numerical variables have very different ranges and scales</li><li>Categorical variables are encoded using strings</li></ol><p>We will address each of these challenges using Scikit-learn pipelines, which allow us to arrange a series of transformations into a Pipeline class, then apply the transformations to the data.</p><p>The added benefit of the Pipeline is that it will allow us to fit the transformations on the training set and to apply the transformations to the unseen test set. This will help us to avoid data leakage and develop models with greater potential for generalization. For example, when imputing missing values in the test set, we will use the median value of the corresponding column in the train set.</p><p>Again, we do so because our ultimate goal is not simply to achieve the best test score, but to build a robust model that can generalize to new cases.</p><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-python data-lang=python><span style=color:#75715e># Determining which columns are numeric and categorical</span>
+
+<span style=color:#75715e># Finding the names of the numerical columns</span>
+num_cols <span style=color:#f92672>=</span> X_train<span style=color:#f92672>.</span>dtypes[X_train<span style=color:#f92672>.</span>dtypes <span style=color:#f92672>!=</span> object]<span style=color:#f92672>.</span>index<span style=color:#f92672>.</span>to_list()
+
+<span style=color:#75715e># Finding the names of the categorical columns</span>
+X_train_cat <span style=color:#f92672>=</span> X_train<span style=color:#f92672>.</span>drop(num_cols, axis<span style=color:#f92672>=</span><span style=color:#ae81ff>1</span>)
+cat_cols <span style=color:#f92672>=</span> X_train_cat<span style=color:#f92672>.</span>columns<span style=color:#f92672>.</span>to_list()
+</code></pre></div><p>First, we will build our pipeline for numerical data. We will first impute any missing values with the median of the feature, then normalize the values. We will use RobustScaler here because it works well with outliers. StandardScaler, which normalizes all values from min to max, is very sensitive to outliers.</p><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-python data-lang=python>num_pipeline <span style=color:#f92672>=</span> Pipeline([
+                         (<span style=color:#e6db74>&#39;imputer&#39;</span>, SimpleImputer(strategy<span style=color:#f92672>=</span><span style=color:#e6db74>&#39;median&#39;</span>)),
+                         (<span style=color:#e6db74>&#39;robust_scaler&#39;</span>, RobustScaler())
+])
+</code></pre></div><p>Next, we will build our categorical pipeline. We will impute missing values with the most frequent value and use one hot encode our categorical values. We use one hot encoding because the categorical values are currently encoded as strings, and the OneHotEncoder will create a new column for each category, allowing our models to take advantage of the categorical information.</p><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-python data-lang=python>cat_pipeline <span style=color:#f92672>=</span> Pipeline([
+                         (<span style=color:#e6db74>&#39;imputer&#39;</span>, SimpleImputer(strategy<span style=color:#f92672>=</span><span style=color:#e6db74>&#39;most_frequent&#39;</span>)),
+                         (<span style=color:#e6db74>&#39;one_hot_encoder&#39;</span>, OneHotEncoder(handle_unknown<span style=color:#f92672>=</span><span style=color:#e6db74>&#39;ignore&#39;</span>))
+                         <span style=color:#75715e># Ignore unknowns in case the train set contains categories not found in the test set</span>
+])
+</code></pre></div><p>Lastly, we put it all together to create our full pipeline. This will ensure the transformations are applied to the appropriate columns.</p><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-python data-lang=python>full_pipeline <span style=color:#f92672>=</span> ColumnTransformer([
+                                   (<span style=color:#e6db74>&#39;num&#39;</span>, num_pipeline, num_cols),
+                                   (<span style=color:#e6db74>&#39;cat&#39;</span>, cat_pipeline, cat_cols)
+])
+</code></pre></div><p>Now we can transform our data using the pipelines. Note that we are fitting to the training data and transforming the training and test data to avoid data leakage.</p><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-python data-lang=python>X_train <span style=color:#f92672>=</span> full_pipeline<span style=color:#f92672>.</span>fit_transform(X_train)
+X_test <span style=color:#f92672>=</span> full_pipeline<span style=color:#f92672>.</span>transform(X_test)
+<span style=color:#75715e># Output is a SciPy sparse array, since most values are 0 due to one hot encoding</span>
+<span style=color:#66d9ef>print</span>(<span style=color:#e6db74>&#39;X_train shape: {}&#39;</span><span style=color:#f92672>.</span>format(X_train<span style=color:#f92672>.</span>shape))
+<span style=color:#66d9ef>print</span>(<span style=color:#e6db74>&#39;X_test shape: {}&#39;</span><span style=color:#f92672>.</span>format(X_test<span style=color:#f92672>.</span>shape))
+full_pipeline_params <span style=color:#f92672>=</span> full_pipeline<span style=color:#f92672>.</span>get_params() <span style=color:#75715e># Storing the pipeline parameters</span>
+<span style=color:#75715e># Column names won&#39;t be that useful to us now, since there are ~300 columns to look through</span>
+</code></pre></div><pre><code>X_train shape: (1460, 324)
+X_test shape: (1459, 324)
+</code></pre><p>Our data processing is finished! We now have datasets with 301 features, due to one hot encoding. Fortunately, the data is stored in SciPy sparse matrices, which store the locations of nonzero values, which will save space and help us to minimize computation time.</p><h2 id=selecting-a-base-model>Selecting a Base Model</h2><p>Now that we have reduced the dimensionality of our dataset, we will train a set of base regression models using default parameters. The goal here is to select the most promising model and to focus on maximizing the predictive power of that singular model.</p><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-python data-lang=python><span style=color:#75715e># List of models to evaluate</span>
+models <span style=color:#f92672>=</span> [
+          <span style=color:#75715e># Linear regression</span>
+          LinearRegression(),
+          Ridge(),
+          SGDRegressor(),
+          Lasso(),
+
+          <span style=color:#75715e># Ensemble methods</span>
+          RandomForestRegressor(),
+          AdaBoostRegressor(),
+          ExtraTreesRegressor(),
+
+          <span style=color:#75715e># KNN</span>
+          KNeighborsRegressor(),
+
+          <span style=color:#75715e># Decision Trees</span>
+          DecisionTreeRegressor(),
+
+          <span style=color:#75715e>#XGBoost</span>
+          XGBRegressor()
+]
+
+<span style=color:#75715e># DataFrame to compile results</span>
+model_columns <span style=color:#f92672>=</span> [<span style=color:#e6db74>&#39;model_name&#39;</span>, <span style=color:#e6db74>&#39;rmse&#39;</span>, <span style=color:#e6db74>&#39;time&#39;</span>]
+base_models <span style=color:#f92672>=</span> pd<span style=color:#f92672>.</span>DataFrame(columns<span style=color:#f92672>=</span>model_columns)
+
+<span style=color:#75715e># Populate dataframe with results of each base model</span>
+model_index <span style=color:#f92672>=</span> <span style=color:#ae81ff>0</span>
+
+<span style=color:#66d9ef>for</span> model <span style=color:#f92672>in</span> models:
+  start <span style=color:#f92672>=</span> time<span style=color:#f92672>.</span>time()
+  <span style=color:#75715e># Saving model name and paramters</span>
+  model_name <span style=color:#f92672>=</span> model<span style=color:#f92672>.</span>__class__<span style=color:#f92672>.</span>__name__
+  base_models<span style=color:#f92672>.</span>loc[model_index, <span style=color:#e6db74>&#39;model_name&#39;</span>] <span style=color:#f92672>=</span> model_name
+
+  <span style=color:#75715e># Cross validation score</span>
+  results <span style=color:#f92672>=</span> cv_results(model, X_train, y_train)
+  base_models<span style=color:#f92672>.</span>loc[model_index, <span style=color:#e6db74>&#39;rmse&#39;</span>] <span style=color:#f92672>=</span> results
+
+  <span style=color:#75715e>#Computation time</span>
+  base_models<span style=color:#f92672>.</span>loc[model_index, <span style=color:#e6db74>&#39;time&#39;</span>] <span style=color:#f92672>=</span> time<span style=color:#f92672>.</span>time() <span style=color:#f92672>-</span> start
+
+  model_index <span style=color:#f92672>+=</span> <span style=color:#ae81ff>1</span>
+
+base_models <span style=color:#f92672>=</span> base_models<span style=color:#f92672>.</span>sort_values(by<span style=color:#f92672>=</span><span style=color:#e6db74>&#39;rmse&#39;</span>, ascending<span style=color:#f92672>=</span>True)
+<span style=color:#66d9ef>print</span>(base_models)
+</code></pre></div><pre><code>              model_name          rmse       time
+9           XGBRegressor  1.441500e-01   1.277990
+4  RandomForestRegressor  1.458450e-01   9.462690
+6    ExtraTreesRegressor  1.486720e-01  12.566900
+1                  Ridge  1.580600e-01   1.107460
+5      AdaBoostRegressor  1.723340e-01   0.711068
+0       LinearRegression  1.950780e-01   1.952470
+8  DecisionTreeRegressor  2.077360e-01   0.167726
+7    KNeighborsRegressor  2.452470e-01   0.134309
+3                  Lasso  3.950370e-01   1.040080
+2           SGDRegressor  7.604190e+14   1.067990
+</code></pre><p>We see that the XGBoost regressor had the lowest RMSE of all the base models we tested. XGBoost is an optimized implementation of gradient boosting. The model&rsquo;s performance on our dataset is unsurprising, as it has consistently performed well in notable machine learning competitions.</p><h2 id=feature-selection-with-rfecv>Feature Selection with RFECV</h2><p>Now that we have selected our model, we will tune it to maximize its predictive power (i.e. minimize RMSE). At this point, our datasets contain 301 features, many of which may not contain useful information. As XGBoost has a built in feature importance metric, we can use recursive feature elimination (RFE) alongside cross validation. This functionality is conveniently provided by sklearn.</p><p>RFE works by first tuning the model (in this case, XGBoost) on all of the features in the dataset. The model&rsquo;s feature importance metric will then be assessed to identify the least important feature. This feature is removed from the feature set and the model is retuned on the entire feature set minus the dropped feature. RFECV with Scikit-learn will apply this for us using cross validation to find the optimal feature set that will maximize our performance based on the objective function (in this case, minimize RMSE).</p><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-python data-lang=python>start <span style=color:#f92672>=</span> time<span style=color:#f92672>.</span>time()
+xgb_reg <span style=color:#f92672>=</span> XGBRegressor(objective<span style=color:#f92672>=</span><span style=color:#e6db74>&#39;reg:squarederror&#39;</span>)
+cv_split <span style=color:#f92672>=</span> ShuffleSplit(n_splits<span style=color:#f92672>=</span><span style=color:#ae81ff>5</span>, test_size<span style=color:#f92672>=</span><span style=color:#ae81ff>0.3</span>, random_state<span style=color:#f92672>=</span><span style=color:#ae81ff>0</span>)
+rfecv <span style=color:#f92672>=</span> RFECV(estimator<span style=color:#f92672>=</span>xgb_reg, step<span style=color:#f92672>=</span><span style=color:#ae81ff>1</span>, cv<span style=color:#f92672>=</span>cv_split, scoring<span style=color:#f92672>=</span><span style=color:#e6db74>&#39;neg_mean_squared_error&#39;</span>)
+rfecv <span style=color:#f92672>=</span> rfecv<span style=color:#f92672>.</span>fit(X_train, y_train)
+<span style=color:#66d9ef>print</span>(<span style=color:#e6db74>&#39;Time Elapsed: {}&#39;</span><span style=color:#f92672>.</span>format(time<span style=color:#f92672>.</span>time()<span style=color:#f92672>-</span>start))
+</code></pre></div><pre><code>Time Elapsed: 457.01400446891785
+</code></pre><p>As we have done with other transformations, we fit the transformation algorithm on the training data and subsequently apply the transformation to both the training and testing set.</p><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-python data-lang=python>X_train_rfecv <span style=color:#f92672>=</span> rfecv<span style=color:#f92672>.</span>transform(X_train)
+X_test_rfecv <span style=color:#f92672>=</span> rfecv<span style=color:#f92672>.</span>transform(X_test)
+</code></pre></div><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-python data-lang=python>X_train_rfecv<span style=color:#f92672>.</span>shape, X_test_rfecv<span style=color:#f92672>.</span>shape
+</code></pre></div><pre><code>((1460, 57), (1459, 57))
+</code></pre><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-python data-lang=python><span style=color:#66d9ef>print</span>(<span style=color:#e6db74>&#39;5-fold CV RMSE of XGBoost after RFECV: {:.4f}&#39;</span><span style=color:#f92672>.</span>format(cv_results(xgb_reg, X_train_rfecv, y_train)))
+</code></pre></div><pre><code>5-fold CV RMSE of XGBoost after RFECV: 0.1398
+</code></pre><h2 id=hyperparameter-tuning>Hyperparameter Tuning</h2><p>We have now selected our base model and used RFECV to select the optimal feature set. Thus far, our optimizations have focused on transforming the datasets to maximize predictive power, but we have yet to adjust the hyperparameters of the XGBoost model itself. In this next step, we will use Grid Search and Hyperopt with cross validation to identify the optimal hyperparameters for our XGBRegressor.</p><h3 id=grid-search-cv>Grid Search CV</h3><p>Grid search is a hyperparameter tuning algorithm that, provided a dictionary of possible hyperparameter values, exhaustively trains the predictive model on each and every hyperparameter combination. Grid Search is incredibly useful because it can identify an optimal set of hyperparameters as long as the optimal values are contained in the grid. However, as Grid Search trains and cross validates the selected model on every single combination, it has very high computational complexity and will often result in long search times.</p><p>As Grid Search can take a very long time to run, we must do our best to minimize the combinations of hyperparameters provided to the algorithm.</p><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-python data-lang=python><span style=color:#75715e># Defining the parameter grid through which grid search will iterate</span>
+param_grid <span style=color:#f92672>=</span> [
+              {
+               <span style=color:#e6db74>&#39;booster&#39;</span>: [<span style=color:#e6db74>&#39;gbtree&#39;</span>],
+               <span style=color:#e6db74>&#39;n_estimators&#39;</span> : list(range(<span style=color:#ae81ff>100</span>, <span style=color:#ae81ff>501</span>, <span style=color:#ae81ff>100</span>)),
+               <span style=color:#e6db74>&#39;objective&#39;</span> : [<span style=color:#e6db74>&#39;reg:squarederror&#39;</span>],
+               <span style=color:#e6db74>&#39;max_depth&#39;</span> : list(range(<span style=color:#ae81ff>3</span>, <span style=color:#ae81ff>11</span>)),
+               <span style=color:#e6db74>&#39;gamma&#39;</span> : [<span style=color:#ae81ff>0.01</span>, <span style=color:#ae81ff>0.1</span>, <span style=color:#ae81ff>0.5</span>, <span style=color:#ae81ff>1.0</span>]
+              }
+]
+
+<span style=color:#75715e># Implement grid search using cross validation</span>
+cv_split <span style=color:#f92672>=</span> ShuffleSplit(n_splits<span style=color:#f92672>=</span><span style=color:#ae81ff>5</span>, test_size<span style=color:#f92672>=</span><span style=color:#ae81ff>0.3</span>, random_state<span style=color:#f92672>=</span><span style=color:#ae81ff>0</span>)
+grid_search <span style=color:#f92672>=</span> GridSearchCV(estimator<span style=color:#f92672>=</span>XGBRegressor(), param_grid<span style=color:#f92672>=</span>param_grid,
+                           scoring <span style=color:#f92672>=</span> <span style=color:#e6db74>&#39;neg_mean_squared_error&#39;</span>,
+                           cv <span style=color:#f92672>=</span> cv_split)
+</code></pre></div><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-python data-lang=python><span style=color:#75715e># Fit grid search</span>
+start <span style=color:#f92672>=</span> time<span style=color:#f92672>.</span>time()
+grid_search<span style=color:#f92672>.</span>fit(X_train_rfecv, y_train)
+<span style=color:#66d9ef>print</span>(<span style=color:#e6db74>&#39;Time Elapsed: {}&#39;</span><span style=color:#f92672>.</span>format(time<span style=color:#f92672>.</span>time()<span style=color:#f92672>-</span>start))
+</code></pre></div><pre><code>Time Elapsed: 261.41600584983826
+</code></pre><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-python data-lang=python><span style=color:#75715e># Retrieve the best estimator from the grid search and save the model</span>
+xgb_grid <span style=color:#f92672>=</span> grid_search<span style=color:#f92672>.</span>best_estimator_
+cv_results_print(xgb_grid, X_train_rfecv, y_train)
+</code></pre></div><pre><code>Model: XGBRegressor
+Model Parameters: {'objective': 'reg:squarederror', 'base_score': 0.5, 'booster': 'gbtree', 'colsample_bylevel': 1, 'colsample_bynode': 1, 'colsample_bytree': 1, 'gamma': 0.01, 'gpu_id': -1, 'importance_type': 'gain', 'interaction_constraints': '', 'learning_rate': 0.300000012, 'max_delta_step': 0, 'max_depth': 3, 'min_child_weight': 1, 'missing': nan, 'monotone_constraints': '()', 'n_estimators': 200, 'n_jobs': 0, 'num_parallel_tree': 1, 'random_state': 0, 'reg_alpha': 0, 'reg_lambda': 1, 'scale_pos_weight': 1, 'subsample': 1, 'tree_method': 'exact', 'validate_parameters': 1, 'verbosity': None}
+5 Fold CV RMSE: 0.1361
+Computation Time: 2.10
+</code></pre><h3 id=hyperparameter-tuning-with-hyperopt>Hyperparameter tuning with Hyperopt</h3><p>Grid Search is a very simple algorithm that fits our model using every combination of input parameters. However, the algorithm does not infer any details from each combination. Hyperopt seeks to combat this issue that persists Grid Search and other &ldquo;greedy&rdquo; search algorithms.</p><p>Hyperopt is a Python library for the optimization of model hyperparameters that leverages Bayesian concepts of prior probability. Rather than exhaustively or randomly searching a parameter space, hyperopt takes advantage of probability distributions to quickly converge on an optimal set of hyperparameter values.</p><p>We will implement hyperopt using the Tree of Parzen Estimators (TPE) algorithm, which uses prior probabilities to approximate expected improvement in model performance. TPE uses expected improvement, rather than actual model score or accuracy, to converge on optimal hyperparameters, which saves substantial time.</p><h4 id=parameter-space>Parameter space</h4><p>First we must define a parameter space for hyperopt using probability distributions. Note that we can also ask hyperopt to simply select from a list of possible hyperparameters, as we are doing with a few variables here.</p><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-python data-lang=python>param_hyperopt <span style=color:#f92672>=</span> {
+    <span style=color:#e6db74>&#39;n_estimators&#39;</span> : scope<span style=color:#f92672>.</span>int(hp<span style=color:#f92672>.</span>quniform(<span style=color:#e6db74>&#39;n_estimators&#39;</span>, <span style=color:#ae81ff>100</span>, <span style=color:#ae81ff>1000</span>, <span style=color:#ae81ff>1</span>)),
+    <span style=color:#e6db74>&#39;max_depth&#39;</span>: scope<span style=color:#f92672>.</span>int(hp<span style=color:#f92672>.</span>quniform(<span style=color:#e6db74>&#39;max_depth&#39;</span>, <span style=color:#ae81ff>2</span>, <span style=color:#ae81ff>20</span>, <span style=color:#ae81ff>1</span>)),
+    <span style=color:#e6db74>&#39;learning_rate&#39;</span>: hp<span style=color:#f92672>.</span>loguniform(<span style=color:#e6db74>&#39;learning_rate&#39;</span>, np<span style=color:#f92672>.</span>log(<span style=color:#ae81ff>0.01</span>), np<span style=color:#f92672>.</span>log(<span style=color:#ae81ff>1</span>)),
+    <span style=color:#e6db74>&#39;subsample&#39;</span>: hp<span style=color:#f92672>.</span>uniform(<span style=color:#e6db74>&#39;subsample&#39;</span>, <span style=color:#ae81ff>0.8</span>, <span style=color:#ae81ff>1.0</span>),
+    <span style=color:#e6db74>&#39;colsample_bytree&#39;</span> : hp<span style=color:#f92672>.</span>choice(<span style=color:#e6db74>&#39;colsample_bytree&#39;</span>, np<span style=color:#f92672>.</span>arange(<span style=color:#ae81ff>0.3</span>, <span style=color:#ae81ff>0.8</span>, <span style=color:#ae81ff>0.1</span>)),
+    <span style=color:#e6db74>&#39;alpha&#39;</span> : hp<span style=color:#f92672>.</span>choice(<span style=color:#e6db74>&#39;alpha&#39;</span>, np<span style=color:#f92672>.</span>arange(<span style=color:#ae81ff>0.0</span>, <span style=color:#ae81ff>1.1</span>, <span style=color:#ae81ff>0.1</span>)),
+    <span style=color:#e6db74>&#39;objective&#39;</span>:  hp<span style=color:#f92672>.</span>choice(<span style=color:#e6db74>&#39;objective&#39;</span>, [<span style=color:#e6db74>&#39;reg:squarederror&#39;</span>]),
+    <span style=color:#e6db74>&#39;booster&#39;</span>: hp<span style=color:#f92672>.</span>choice(<span style=color:#e6db74>&#39;booster&#39;</span>, [<span style=color:#e6db74>&#39;gbtree&#39;</span>])
+}
+</code></pre></div><p>Next, we will define a function that will time, implement, and record the hyperopt TPE algorithm on our dataset and provide the best performing hyperparameter set.</p><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-python data-lang=python><span style=color:#66d9ef>def</span> <span style=color:#a6e22e>hyperopt</span>(param_space, X_train_data, y_train_data, num_eval):
+
+    <span style=color:#75715e># Timing</span>
+    start <span style=color:#f92672>=</span> time<span style=color:#f92672>.</span>time()
+
+    <span style=color:#75715e># Creating an objective function that will output rmse loss given a set of model parameters</span>
+    <span style=color:#75715e># Hyperopt will seek to minimize the loss returned by this function</span>
+    <span style=color:#66d9ef>def</span> <span style=color:#a6e22e>objective_function</span>(params):
+        clf <span style=color:#f92672>=</span> XGBRegressor(<span style=color:#f92672>**</span>params)
+        score <span style=color:#f92672>=</span> cross_val_score(clf, X_train_data, y_train_data, cv<span style=color:#f92672>=</span><span style=color:#ae81ff>5</span>, scoring<span style=color:#f92672>=</span><span style=color:#e6db74>&#39;neg_mean_squared_error&#39;</span>)
+        <span style=color:#66d9ef>return</span> {<span style=color:#e6db74>&#39;loss&#39;</span>:np<span style=color:#f92672>.</span>sqrt(<span style=color:#f92672>-</span>score)<span style=color:#f92672>.</span>mean(), <span style=color:#e6db74>&#39;status&#39;</span>:STATUS_OK}
+
+    <span style=color:#75715e># Trials object will store information for each trial, allowing us to see under the hood</span>
+    trials <span style=color:#f92672>=</span> Trials()
+
+    <span style=color:#75715e># The fmin function will carry out the hyperopt optimization for us</span>
+    <span style=color:#75715e># Using TPE and given the objective function, the algorithm will find the hyperparameters that minimize loss as defined by our objective function</span>
+    best_param <span style=color:#f92672>=</span> fmin(objective_function,
+                      param_space,
+                      algo<span style=color:#f92672>=</span>tpe<span style=color:#f92672>.</span>suggest,
+                      max_evals<span style=color:#f92672>=</span>num_eval,
+                      trials<span style=color:#f92672>=</span>trials,
+                      rstate<span style=color:#f92672>=</span> np<span style=color:#f92672>.</span>random<span style=color:#f92672>.</span>RandomState(<span style=color:#ae81ff>0</span>))
+
+    <span style=color:#75715e># Loss for each trial</span>
+    loss <span style=color:#f92672>=</span> [x[<span style=color:#e6db74>&#39;result&#39;</span>][<span style=color:#e6db74>&#39;loss&#39;</span>] <span style=color:#66d9ef>for</span> x <span style=color:#f92672>in</span> trials<span style=color:#f92672>.</span>trials]
+
+    <span style=color:#75715e># Extract our best parameter values into a list</span>
+    best_param_values <span style=color:#f92672>=</span> [x <span style=color:#66d9ef>for</span> x <span style=color:#f92672>in</span> best_param<span style=color:#f92672>.</span>values()]
+
+    <span style=color:#75715e># Fit a new model based on the best parameters, which are stored in the list alphabetically    </span>
+    clf_best <span style=color:#f92672>=</span> XGBRegressor(
+        alpha <span style=color:#f92672>=</span> best_param_values[<span style=color:#ae81ff>0</span>],
+        booster <span style=color:#f92672>=</span> <span style=color:#e6db74>&#39;gbtree&#39;</span>,
+        colsample_bytree <span style=color:#f92672>=</span> best_param_values[<span style=color:#ae81ff>2</span>],
+        learning_rate <span style=color:#f92672>=</span> best_param_values[<span style=color:#ae81ff>3</span>],
+        max_depth <span style=color:#f92672>=</span> int(best_param_values[<span style=color:#ae81ff>4</span>]),
+        n_estimators <span style=color:#f92672>=</span> int(best_param_values[<span style=color:#ae81ff>5</span>]),
+        objective <span style=color:#f92672>=</span> <span style=color:#e6db74>&#39;reg:squarederror&#39;</span>,
+        subsample <span style=color:#f92672>=</span> best_param_values[<span style=color:#ae81ff>7</span>]
+                          )
+
+    clf_best<span style=color:#f92672>.</span>fit(X_train_data, y_train_data)
+
+    <span style=color:#66d9ef>print</span>(<span style=color:#e6db74>&#34;&#34;</span>)
+    <span style=color:#66d9ef>print</span>(<span style=color:#e6db74>&#34;##### Results&#34;</span>)
+    <span style=color:#66d9ef>print</span>(<span style=color:#e6db74>&#34;Score best parameters: &#34;</span>, min(loss))
+    <span style=color:#66d9ef>print</span>(<span style=color:#e6db74>&#34;Best parameters: &#34;</span>, best_param)
+    <span style=color:#66d9ef>print</span>(<span style=color:#e6db74>&#34;Time elapsed: &#34;</span>, time<span style=color:#f92672>.</span>time() <span style=color:#f92672>-</span> start)
+    <span style=color:#66d9ef>print</span>(<span style=color:#e6db74>&#34;Parameter combinations evaluated: &#34;</span>, num_eval)
+
+    <span style=color:#66d9ef>return</span> trials, clf_best
+</code></pre></div><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-python data-lang=python><span style=color:#75715e># Running the optimization function and storing the model and trial log</span>
+hyperopt_trials, xgb_hyperopt <span style=color:#f92672>=</span> hyperopt(
+    param_space<span style=color:#f92672>=</span>param_hyperopt,
+    X_train_data<span style=color:#f92672>=</span>X_train_rfecv,
+    y_train_data<span style=color:#f92672>=</span>y_train,
+    num_eval<span style=color:#f92672>=</span><span style=color:#ae81ff>30</span>)
+</code></pre></div><pre><code>100%|██████████| 30/30 [01:06&lt;00:00,  2.23s/trial, best loss: 0.12048773117575351]
+
+##### Results
+Score best parameters:  0.12048773117575351
+Best parameters:  {'alpha': 1, 'booster': 0, 'colsample_bytree': 1, 'learning_rate': 0.045439499742861544, 'max_depth': 3.0, 'n_estimators': 586.0, 'objective': 0, 'subsample': 0.9089066803820676}
+Time elapsed:  67.22251677513123
+Parameter combinations evaluated:  30
+</code></pre><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-python data-lang=python>cv_results_print(xgb_hyperopt, X_train_rfecv, y_train)
+</code></pre></div><pre><code>Model: XGBRegressor
+Model Parameters: {'objective': 'reg:squarederror', 'base_score': 0.5, 'booster': 'gbtree', 'colsample_bylevel': 1, 'colsample_bynode': 1, 'colsample_bytree': 1, 'gamma': 0, 'gpu_id': -1, 'importance_type': 'gain', 'interaction_constraints': '', 'learning_rate': 0.045439499742861544, 'max_delta_step': 0, 'max_depth': 3, 'min_child_weight': 1, 'missing': nan, 'monotone_constraints': '()', 'n_estimators': 586, 'n_jobs': 0, 'num_parallel_tree': 1, 'random_state': 0, 'reg_alpha': 1, 'reg_lambda': 1, 'scale_pos_weight': 1, 'subsample': 0.9089066803820676, 'tree_method': 'exact', 'validate_parameters': 1, 'verbosity': None, 'alpha': 1}
+5 Fold CV RMSE: 0.1292
+Computation Time: 1.38
+</code></pre><p>We can now see that the hyperopt algorithm has not only found a superior set of hyperparameters, but it has done so while saving us significant time compared to Grid Search!</p><h4 id=visualizing-hyperopt-score>Visualizing Hyperopt Score</h4><p>We can use the trial log to visualize how the minimum error decreases over time</p><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-python data-lang=python>hyperopt_scores <span style=color:#f92672>=</span> [x[<span style=color:#e6db74>&#39;result&#39;</span>][<span style=color:#e6db74>&#39;loss&#39;</span>] <span style=color:#66d9ef>for</span> x <span style=color:#f92672>in</span> hyperopt_trials<span style=color:#f92672>.</span>trials]
+</code></pre></div><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-python data-lang=python>min_tracker <span style=color:#f92672>=</span> []
+trials_tracker <span style=color:#f92672>=</span> []
+
+<span style=color:#66d9ef>for</span> i <span style=color:#f92672>in</span> hyperopt_scores:
+  trials_tracker<span style=color:#f92672>.</span>append(i)
+  min_so_far <span style=color:#f92672>=</span> min(trials_tracker)
+  min_tracker<span style=color:#f92672>.</span>append(min_so_far)
+
+fig, ax <span style=color:#f92672>=</span> plt<span style=color:#f92672>.</span>subplots()
+ax<span style=color:#f92672>.</span>plot(range(len(min_tracker)), min_tracker)
+ax<span style=color:#f92672>.</span>set_title(<span style=color:#e6db74>&#39;Minimum RMSE by Hyperopt Iteration&#39;</span>)
+ax<span style=color:#f92672>.</span>set_ylabel(<span style=color:#e6db74>&#39;Minimum RMSE&#39;</span>)
+ax<span style=color:#f92672>.</span>set_xlabel(<span style=color:#e6db74>&#39;Trial&#39;</span>)
+
+plt<span style=color:#f92672>.</span>show()
+</code></pre></div><img src=/images/posts/house-prices/output_93_0.png class=center><div style=margin-top:rem></div><p>Interestingly, this graph shows us that the best error reduces in large steps, rather than with each iteration. This is because of how hyperopt works&ndash;rather than minimizing the objective function at every iteration (i.e. fitting the model and determining the error), hyperopt will use expected improvement to drive iterations. This is also the same reason why the minimum error presented by hyperopt was different from our actual CV result.</p><p>Most notably, the hyperopt algorithm is able to converge with very few trials, especially considering that it was given a wide parameter space. It is for this reason that, even if hyperopt does not perform better than grid search, it may be the optimal choice, as it is able to converge faster and provides a strong result.</p><h2 id=comparing-the-models>Comparing the Models</h2><p>In this last step, we will compare the Grid Search and Hyperopt optimizations using 10 fold cross validation. This is to help us be more confident that one method is superior to the other for our use case. We will also consider the base model for reference.</p><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-python data-lang=python><span style=color:#75715e># Base Model</span>
+cv_results_10_print(xgb_reg, X_train_rfecv, y_train)
+</code></pre></div><pre><code>Model: XGBRegressor
+Model Parameters: {'objective': 'reg:squarederror', 'base_score': None, 'booster': None, 'colsample_bylevel': None, 'colsample_bynode': None, 'colsample_bytree': None, 'gamma': None, 'gpu_id': None, 'importance_type': 'gain', 'interaction_constraints': None, 'learning_rate': None, 'max_delta_step': None, 'max_depth': None, 'min_child_weight': None, 'missing': nan, 'monotone_constraints': None, 'n_estimators': 100, 'n_jobs': None, 'num_parallel_tree': None, 'random_state': None, 'reg_alpha': None, 'reg_lambda': None, 'scale_pos_weight': None, 'subsample': None, 'tree_method': None, 'validate_parameters': None, 'verbosity': None}
+10 Fold CV RMSE: 0.1417
+Computation Time: 2.54
+</code></pre><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-python data-lang=python><span style=color:#75715e># Grid Search CV</span>
+cv_results_10_print(xgb_grid, X_train_rfecv, y_train)
+</code></pre></div><pre><code>Model: XGBRegressor
+Model Parameters: {'objective': 'reg:squarederror', 'base_score': 0.5, 'booster': 'gbtree', 'colsample_bylevel': 1, 'colsample_bynode': 1, 'colsample_bytree': 1, 'gamma': 0.01, 'gpu_id': -1, 'importance_type': 'gain', 'interaction_constraints': '', 'learning_rate': 0.300000012, 'max_delta_step': 0, 'max_depth': 3, 'min_child_weight': 1, 'missing': nan, 'monotone_constraints': '()', 'n_estimators': 200, 'n_jobs': 0, 'num_parallel_tree': 1, 'random_state': 0, 'reg_alpha': 0, 'reg_lambda': 1, 'scale_pos_weight': 1, 'subsample': 1, 'tree_method': 'exact', 'validate_parameters': 1, 'verbosity': None}
+10 Fold CV RMSE: 0.1373
+Computation Time: 1.99
+</code></pre><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-python data-lang=python><span style=color:#75715e># Hyperopt</span>
+cv_results_10_print(xgb_hyperopt, X_train_rfecv, y_train)
+</code></pre></div><pre><code>Model: XGBRegressor
+Model Parameters: {'objective': 'reg:squarederror', 'base_score': 0.5, 'booster': 'gbtree', 'colsample_bylevel': 1, 'colsample_bynode': 1, 'colsample_bytree': 1, 'gamma': 0, 'gpu_id': -1, 'importance_type': 'gain', 'interaction_constraints': '', 'learning_rate': 0.045439499742861544, 'max_delta_step': 0, 'max_depth': 3, 'min_child_weight': 1, 'missing': nan, 'monotone_constraints': '()', 'n_estimators': 586, 'n_jobs': 0, 'num_parallel_tree': 1, 'random_state': 0, 'reg_alpha': 1, 'reg_lambda': 1, 'scale_pos_weight': 1, 'subsample': 0.9089066803820676, 'tree_method': 'exact', 'validate_parameters': 1, 'verbosity': None, 'alpha': 1}
+10 Fold CV RMSE: 0.1304
+Computation Time: 1.31
+</code></pre><p>There you have it! We found that the hyperopt algorithm provided the best algorithm for our use case, although all three of the models (hyperopt, grid search, and base) had similar performances.</p><h2 id=conclusion>Conclusion</h2><p>Considering that the XGBoost model showed little improvement despite extensive efforts to optimize the model, it may be worthwhile to consider other models, as they may be able to achieve superior results once optimized. Despite this, we were able to develop a model with high predictive power.</p><p>In this project, we cleaned and preprocessed our data, selected a base model (XGBoost), selected features using RFECV, and optimized the model using hyperopt&rsquo;s TPE algorithm. At each step of the way, we were able to enhance the predictive power of our model, all the while avoiding data leakage in hopes of developing a model that would not only perform well on the Kaggle competition, but also perform well when generalizing to new data.</p><h3 id=exporting-results>Exporting Results</h3><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-python data-lang=python><span style=color:#75715e># Making predictions on the test set with our favorite model</span>
+y_pred <span style=color:#f92672>=</span> xgb_hyperopt<span style=color:#f92672>.</span>predict(X_test_rfecv)
+<span style=color:#75715e># We log-transformed our y values, so we need to reverse the transformation</span>
+y_pred <span style=color:#f92672>=</span> np<span style=color:#f92672>.</span>expm1(y_pred)
+y_pred
+</code></pre></div><pre><code>array([124487.766, 158638.4  , 178700.73 , ..., 184126.64 , 114805.01 ,
+       229285.73 ], dtype=float32)
+</code></pre><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-python data-lang=python>results <span style=color:#f92672>=</span> pd<span style=color:#f92672>.</span>DataFrame(data<span style=color:#f92672>=</span>{<span style=color:#e6db74>&#39;Id&#39;</span>:test[<span style=color:#e6db74>&#39;Id&#39;</span>], <span style=color:#e6db74>&#39;SalePrice&#39;</span>: y_pred})
+results
+</code></pre></div><pre><code>     Id      SalePrice
+0  1461  124487.765625
+1  1462  158638.406250
+2  1463  178700.734375
+3  1464  191255.046875
+4  1465  186095.890625
+1459 rows × 2 columns
+</code></pre><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-python data-lang=python>results<span style=color:#f92672>.</span>to_csv(<span style=color:#e6db74>&#39;house_price_sub.csv&#39;</span>, header<span style=color:#f92672>=</span>True, index<span style=color:#f92672>=</span>False)
+</code></pre></div></div><div class=btn-improve-page><a href=https://github.com/naingthet/naingthet.github.io/edit/master/content/posts/house-prices/house-prices.md><i class="fas fa-code-branch"></i>Improve this page</a></div><hr><div class="row next-prev-navigator"><div class="col-md-6 previous-article"><a href=/posts/fraud/fraud/ class="btn btn-outline-info"><span><i class="fas fa-chevron-circle-left"></i>Prev</span><br><span>Credit Card Fraud Detection</span></a></div><div class="col-md-6 next-article"><a href=/posts/trump/trump/ class="btn btn-outline-info"><span>Next <i class="fas fa-chevron-circle-right"></i></span><br><span>Analyzing Donald Trump's Tweets Using Natural Language Processing</span></a></div></div><hr></div></div></div></section><section class=toc-section id=toc-section><div class=toc-holder><h5 class="text-center pl-3">Table of Contents</h5><hr><div class=toc><nav id=TableOfContents><ul><li><a href=#introduction>Introduction</a><ul><li><a href=#framework>Framework</a></li></ul></li><li><a href=#setup>Setup</a><ul><li><a href=#libraries>Libraries</a></li><li><a href=#graphing>Graphing</a></li><li><a href=#utility-functions>Utility Functions</a></li><li><a href=#loading-data>Loading Data</a></li></ul></li><li><a href=#data-cleaning-and-visualization>Data Cleaning and Visualization</a><ul><li><a href=#null-values-representing-0-or-none>Null Values Representing 0 or None</a></li><li><a href=#null-values-representing-none>Null values representing &ldquo;None&rdquo;</a></li><li><a href=#null-values-representing-0>Null values representing 0</a></li><li><a href=#adjusting-data-types>Adjusting data types</a></li><li><a href=#removing-non-informative-features>Removing Non-informative Features</a><ul><li><a href=#missing-values>Missing Values</a></li><li><a href=#correlated-features>Correlated Features</a></li></ul></li><li><a href=#separating-x-and-y-values>Separating X and Y Values</a></li><li><a href=#preventing-data-leakage>Preventing Data Leakage</a></li><li><a href=#data-transformation-pipeline>Data Transformation Pipeline</a></li></ul></li><li><a href=#selecting-a-base-model>Selecting a Base Model</a></li><li><a href=#feature-selection-with-rfecv>Feature Selection with RFECV</a></li><li><a href=#hyperparameter-tuning>Hyperparameter Tuning</a><ul><li><a href=#grid-search-cv>Grid Search CV</a></li><li><a href=#hyperparameter-tuning-with-hyperopt>Hyperparameter tuning with Hyperopt</a><ul><li><a href=#parameter-space>Parameter space</a></li><li><a href=#visualizing-hyperopt-score>Visualizing Hyperopt Score</a></li></ul></li></ul></li><li><a href=#comparing-the-models>Comparing the Models</a></li><li><a href=#conclusion>Conclusion</a><ul><li><a href=#exporting-results>Exporting Results</a></li></ul></li></ul></nav></div></div></section></div><footer class="container-fluid text-center align-content-center footer pb-2"><div class="container pt-5"><div class="row text-left"><div class="col-md-4 col-sm-12"><h5>Navigation</h5><ul><li class=nav-item><a class=smooth-scroll href=#about>About</a></li><li class=nav-item><a class=smooth-scroll href=#skills>Skills</a></li><li class=nav-item><a class=smooth-scroll href=#experiences>Experiences</a></li><li class=nav-item><a class=smooth-scroll href=#projects>Projects</a></li><li class=nav-item><a class=smooth-scroll href=#recent-posts>Recent Posts</a></li></ul></div><div class="col-md-4 col-sm-12"><h5>Contact me:</h5><ul><li><span>Email:</span> <span>naing.thet97@gmail.com</span></li><li><span>Phone:</span> <span>+13109937103</span></li></ul></div></div></div><hr><div class=container><div class="row text-left"><div class=col-md-4><a id=theme href=https://github.com/hossainemruz/toha target=#><img src=/assets/images/inverted-logo.png>
+Toha</a></div><div class="col-md-4 text-center">© 2020 Copyright.</div><div class="col-md-4 text-right"><a id=hugo href=https://gohugo.io/>Powered by
+<img src=/assets/images/hugo-logo-wide.svg alt="Hugo Logo" height=18></a></div></div></div></footer><script src=/assets/js/jquery-3.4.1.min.js></script><script src=/assets/js/popper.min.js></script><script src=/assets/js/bootstrap.min.js></script><script src=/assets/js/navbar.js></script><script src=/assets/js/main.js></script><script src=https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.1/highlight.min.js></script><script src=/assets/js/single.js></script><script>hljs.initHighlightingOnLoad();</script></body></html>
