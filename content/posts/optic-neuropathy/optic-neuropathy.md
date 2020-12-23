@@ -28,21 +28,21 @@ In the following manuscript, we present our purpose, methodology, and results in
 
 ### Optical Coherence Tomography Metrics Accurately Classify Non-arteritic Anterior Ischemic Optic Neuropathy, Open-Angle Glaucoma, and Healthy Eyes
 
-#### Purpose:  
+#### Purpose
 To compare optic nerve head and circumpapillary disc measurements between non-arteritic ischemic optic neuropathy (NAION), open-angle glaucoma (OAG), and healthy control eyes using swept-source optical coherence tomography (ss-OCT), and to find the combination of these metrics that can most accurately discriminate between the three groups.    
 
-#### Methods:
+#### Methods
 This cross-sectional study included 30 NAION eyes and 30 OAG eyes matched for age, 24-2 mean deviation, and location of visual loss, as well as 30 age-matched healthy controls. ss-OCT wide-field and radial scans were obtained for all eyes and used to measure circumpapillary retinal nerve fiber layer (cpRNFL) thickness, Bruch's membrane opening minimum rim width (BMO-MRW), central lamina cribrosa thickness (cLCT), and anterior lamina cribrosa depth (ALCD). These metrics were compared between groups, and used to train Random Forest (RF) models. Classification accuracies of the various RF models were computed to determine the most effective discriminators between the groups.   
 
-#### Results:
+#### Results
 NAION and OAG eyes had significantly thinner cpRNFL in all quadrants when compared to healthy eyes (all P < 0.001), but global and inferior cpRNFL were thicker in NAION eyes than in OAG eyes (both P < 0.01). OAG eyes had significantly thinner BMO-MRW, thinner cLCT, and greater ALCD than NAION and healthy eyes (all P < 0.001). A RF model using cpRNFL thickness in the 4 quadrants and cLCT yielded the highest classification accuracy, 92.14 ± 0.36%.
 
-#### Conclusions:
+#### Conclusions
 OCT metrics accurately discriminated between our three groups. Considering cLCT in addition to cpRNFL can improve the detection of glaucoma and help to rule out non-glaucomatous optic neuropathies such as NAION. Automated classification algorithms may play a useful role in clinical screening.
 
 ## Manuscript
 
-### Introduction:
+### Introduction
 
 Non-arteritic anterior ischemic optic neuropathy (NAION) is an acute optic neuropathy associated with hypoperfusion of the anterior optic nerve and characterized by sudden onset of visual loss, optic disc edema that subsides within weeks to months, and optic disc pallor.<sup>1</sup> Unlike NAION, glaucoma is a progressive optic neuropathy that is often characterized by thinning of the neuroretinal rim and "cupping" of the optic disc, described by Burgoyne<sup>2</sup> as the excavation of the anterior optic nerve head (ONH). The most common subset of glaucoma,  open-angle glaucoma (OAG), is distinguished by an open iridocorneal angle, involves no age-specific or intraocular pressure (IOP) criteria, and includes patients with forms of secondary glaucoma, such as those caused by pseudoexfoliation and pigment-dispersion syndrome.<sup>3</sup>
 

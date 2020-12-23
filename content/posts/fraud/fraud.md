@@ -456,16 +456,16 @@ X_test = robust_scaler.transform(X_test)
 ## Data Imbalance
 As the target variable is heavily skewed, predictive models may be prone to assuming that test cases are genuine. However, we want our models to be able to accurately determine if new transactions are fraudulent given the input features. If we do not correct the data imbalance somehow, then our models will tend to overfit the genuine transaction data and are likely to be insensitive to fraudulent transactions.
 
-We will consider a few approaches to correcting the imbalance:
+We will consider two approaches to correcting the imbalance:
 
 
-### 1.   Undersampling
+**1. Undersampling**
 
 
 > Undersampling involves sampling a random subset of the data such that genuine and fraudulent transactions are represented. The main issue with this approach is that in our case, we would only have ~800 data points in total, since there are only about 400 fraudulent transactions. This would waste much of our data and result in models that are significantly less powerful than those given ample training data.
 
 
-### 2.   Oversampling - SMOTE
+**2. Oversampling - SMOTE**
 
 >  Oversampling involves the artificial creation of new data points using the less frequently observed target variable. Synthetic Minority Oversampling Technique, or SMOTE, is amongst the most popular approaches to oversampling. SMOTE, developed by [Nitesth Chawla](https://arxiv.org/abs/1106.1813) is a data augmentation method that creates new minority class datapoints. SMOTE selects random minority class cases from the dataset and uses K Nearest Neighbors to find similar datapoints in the feature space. The method then creates a new example at the midpoint between the minority class example and its nearest neighbor. SMOTE has many advantages over the other methods, as it expands the dataset without discarding examples and also does so by adding new information, rather than simply duplicating the examples.
 
@@ -987,7 +987,7 @@ print('Time: {:.2f}'.format(time.time()-start))
 
 Even with 5 fold cross validation using SMOTE, the entire operation on GPU took about 8 seconds! As with Light GBM, the GPU support will make our computations run much faster, which will allow us to run more iterations of search in the same amount of time.
 
-#### Randomized Search
+### Randomized Search
 
 
 ```
