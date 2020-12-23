@@ -1,0 +1,67 @@
+# section information
+section:
+  name: Projects
+  id: projects
+  enable: true
+  weight: 4
+  showOnNavbar: true
+  # Can optionally hide the title in sections
+  # hideTitle: true
+
+# filter buttons
+buttons:
+- name: All
+  filter: "all"
+- name: Machine Learning
+  filter: "ml"
+- name: Deep Learning
+  filter: "dl"
+- name: NLP
+  filter: "nlp"
+- name: Research
+  filter: "research"
+
+# your projects
+projects:
+- name: House Prices
+  logo: /images/sections/projects/house.png
+  role: Author
+  timeline: "2020"
+  repo: https://github.com/naingthet/house-price-regression
+  #url: ""  # If your project is not a public repo but it has a website or any external details url then provide it here. don't provide "repo" and "url" simultaneously.
+  summary: Application of XGBoost and other advanced regression techniques prediction of house sale prices
+  tags: ["ml"]
+
+- name: Donald Trump Tweet Analysis
+  logo: /images/sections/projects/twitter.png
+  role: Author
+  timeline: "2020"
+  repo: https://github.com/naingthet/trump-tweets-nlp
+  summary: Analysis of Donald Trump's complete Twitter history using Natural Language Processing and VADER Sentiment Analysis
+  tags: ["nlp"]
+
+
+- name: Optic Neuropathy Classifier
+  logo: /images/sections/projects/eye.png
+  role: First Author
+  timeline: "2018"
+  repo: https://github.com/naingthet/optic-neuropathy-classification
+  summary: Research at Columbia University on the application of Machine Learning classifiers to optic neuropathy diagnosis
+  tags: ["ml","research"]
+
+- name: Digit Recognizer
+  logo: /images/sections/projects/digit.png
+  role: Author
+  timeline: "2020"
+  repo: https://github.com/naingthet/mnist
+  summary: Convolutional Neural Networks for handwritten digit recognition, model ranked in top 12% of Kaggle's Digit Recognizer competition
+  tags: ["ml","dl"]
+
+- name: Credit Card Fraud Detector
+  logo: /images/sections/projects/fraud.png
+  role: Author
+  timeline: "2020"
+  repo: https://github.com/naingthet/credit-card-fraud-detector
+  #url: ""
+  summary: Credit card fraud detector trained on imbalanced dataset using SMOTE upsampling with artificial neural networks, Light GBM, and XGBoost
+  tags: ["ml", "dl"]
