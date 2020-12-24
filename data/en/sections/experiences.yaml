@@ -23,9 +23,10 @@ experiences:
     # end: Dec 2020
     # give some points about what was your responsibilities at the company.
     responsibilities:
-    - Lead day-to-day deliverable development and client interactions to determine optimal pricing and market opportunity for novel therapeutics.
-    - Develop robust models for market sizing, revenue forecasting, and competitive market analysis for a variety of industry clients.
-    - Collaborate with IQVIA's AI/ML teams to plan and present business development proposals to potential clients
+    - Lead day-to-day deliverable development and client interactions to determine optimal pricing and market opportunity for novel therapeutics
+    - Develop robust models for market sizing, revenue forecasting, and competitive market analysis for clients across many major global markets
+    - Collaborate with IQVIA’s AI/ML team to plan and present business development proposals to potential clients
+
 
 
 - company:
@@ -34,11 +35,11 @@ experiences:
     location: New York, NY
     overview: The Columbia Data Science Institute (DSI) is Columbia University's primary center for data science, working with 18 of Columbia's schools to offer programs for education and research.
   positions:
-  - designation: DSI Scholar
+  - designation: DSI Summer Scholar
     start: May 2018
     end: Aug 2018
     responsibilities:
-    - Applied natural language processing (NLP) algorithms using NLTK to perform terminology extraction, sentiment analysis, and topic segmentation on libraries of legislative texts to understand differences in international approaches to writing antitrust regulation.
+    - Applied natural language processing (NLP) techniques to perform terminology extraction, sentiment analysis, and topic segmentation on legislative texts to understand differences in international approaches to antitrust regulation
 
 - company:
     name: Columbia University Senate
@@ -50,9 +51,10 @@ experiences:
     start: Jun 2016
     end: May 2019
     responsibilities:
-    - Designed and launched surveys using Qualtrics to assess the satisfaction of over 15,000 Columbia students and faculty.
-    - Developed reproducible end-to-end Python scripts and notebooks to clean, analyze, and visualize annual survey results with the aim of identifying areas of improvement in student and faculty satisfaction.
-    - Leveraged data visualizations to deliver clear and concise policy insights and recommendations to the Columbia University President and Board of Trustees, a non-technical audience.
+    - Designed and launched surveys to assess the satisfaction of over 15,000 students and faculty
+    - Developed reproducible Python notebooks to clean, analyze, and visualize annual survey results with the aim of identifying areas of improvement in student and faculty satisfaction
+    - Leveraged data visualizations to deliver actionable policy insights and recommendations to the Columbia University President and Board of Trustees, a non-technical audience
+
 
 
 
@@ -66,5 +68,5 @@ experiences:
     start: Sep 2015
     end: May 2019
     responsibilities:
-    - Studied the application of machine learning classification algorithms on clinical measures of optical coherence tomography scans. Developed a multiclass Random Forest classification algorithm that achieved 93% accuracy in distinguishing between three groups of neuropathy patients.
-    - Investigated the application of convolutional neural networks (CNNs) using Keras and TensorFlow to optical coherence tomography scans, eliminating the previous Random Forest model’s need for manual measurements by trained observers.
+    - Studied the application of Random Forest classification models to the detection and classification of optic neuropathies using clinical measurements, achieving 93% accuracy in classifying patients
+    - Investigated the application of convolutional neural networks (CNNs) to assess the potential value of deep learning algorithms built into imaging machines for onsite screening of patients
