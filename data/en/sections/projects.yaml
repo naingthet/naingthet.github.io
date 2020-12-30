@@ -23,39 +23,14 @@ buttons:
 
 # your projects
 projects:
-- name: House Prices
-  logo: /images/sections/projects/house.png
+- name: Bitcoin Price Forecasting
+  logo: /images/sections/projects/bitcoin.png
   role: Author
   timeline: "2020"
-  repo: https://github.com/naingthet/house-price-regression
+  repo: https://github.com/naingthet/bitcoin-price-forecasting
   #url: ""  # If your project is not a public repo but it has a website or any external details url then provide it here. don't provide "repo" and "url" simultaneously.
-  summary: Prediction of house sale prices with the XGBoost implementation of gradient boosting machines
-  tags: ["ml"]
-
-- name: Donald Trump Tweet Analysis
-  logo: /images/sections/projects/twitter.png
-  role: Author
-  timeline: "2020"
-  repo: https://github.com/naingthet/trump-tweets-nlp
-  summary: Sentiment analysis of Donald Trump’s Twitter using NLP techniques and Valence Aware Dictionary and Sentiment Reasoner (VADER)
-  tags: ["nlp"]
-
-
-- name: Optic Neuropathy Classifier
-  logo: /images/sections/projects/eye.png
-  role: First Author
-  timeline: "2018"
-  repo: https://github.com/naingthet/optic-neuropathy-classification
-  summary: Research at Columbia University on the application of Machine Learning classifiers to optic neuropathy diagnosis
-  tags: ["ml","research"]
-
-- name: Digit Recognizer
-  logo: /images/sections/projects/digit.png
-  role: Author
-  timeline: "2020"
-  repo: https://github.com/naingthet/mnist
-  summary: Convolutional Neural Networks for handwritten digit recognition; model ranked in top 12% of Kaggle's Digit Recognizer competition
-  tags: ["ml","dl"]
+  summary: Bitcoin price forecasting in Python with recurrent neural networks, long short-term memory neural networks, and Facebook's Prophet framework
+  tags: ["ml", 'dl']
 
 - name: Credit Card Fraud Detector
   logo: /images/sections/projects/fraud.png
@@ -65,3 +40,37 @@ projects:
   #url: ""
   summary: Credit card fraud detector trained on imbalanced dataset using SMOTE upsampling with artificial neural networks and gradient boosting machines
   tags: ["ml", "dl"]
+
+- name: Digit Recognizer
+  logo: /images/sections/projects/digit.png
+  role: Author
+  timeline: "2020"
+  repo: https://github.com/naingthet/mnist
+  summary: Convolutional Neural Networks for handwritten digit recognition; model ranked in top 12% of Kaggle's Digit Recognizer competition
+  tags: ["ml","dl"]
+  
+- name: Donald Trump Tweet Analysis
+  logo: /images/sections/projects/twitter.png
+  role: Author
+  timeline: "2020"
+  repo: https://github.com/naingthet/trump-tweets-nlp
+  summary: Sentiment analysis of Donald Trump’s Twitter using NLP techniques and Valence Aware Dictionary and Sentiment Reasoner (VADER)
+  tags: ["nlp"]
+
+- name: House Prices
+  logo: /images/sections/projects/house.png
+  role: Author
+  timeline: "2020"
+  repo: https://github.com/naingthet/house-price-regression
+  #url: ""  # If your project is not a public repo but it has a website or any external details url then provide it here. don't provide "repo" and "url" simultaneously.
+  summary: Prediction of house sale prices with the XGBoost implementation of gradient boosting machines
+  tags: ["ml"]
+
+
+- name: Optic Neuropathy Classifier
+  logo: /images/sections/projects/eye.png
+  role: First Author
+  timeline: "2018"
+  repo: https://github.com/naingthet/optic-neuropathy-classification
+  summary: Research at Columbia University on the application of Machine Learning classifiers to optic neuropathy diagnosis
+  tags: ["ml","research"]
