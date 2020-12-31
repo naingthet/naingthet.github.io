@@ -15,7 +15,7 @@ company:
   url: "https://www.iqvia.com"
 
 # your resume. this file path should be relative to you "static" directory
-resume: "files/NaingThet_Resume_2020_12_23.pdf"
+resume: "files/NaingThet_Resume.pdf"
 
 # a summary about you
 summary: 'I am a passionate data scientist and analyst with 2 years of working experience. With a diverse background in data science, life sciences, and business, I am constantly seeking out new opportunities to use data for good. Through my academic and professional experiences, I have applied data science and machine learning techniques to a wide variety of problem areas, including business analytics, medical imaging and diagnostics, and legal analysis. These opportunities have equipped and inspired me to consider innovative approaches to every problem I face.'
