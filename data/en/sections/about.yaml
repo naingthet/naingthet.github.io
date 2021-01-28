@@ -65,10 +65,10 @@ softSkills:
   percentage: 100
   color: pink
 - name: Deep Learning
-  percentage: 90
+  percentage: 100
   color: orange
 - name: NLP
-  percentage: 80
+  percentage: 100
   color: green
 
 # - name: Fast Learner

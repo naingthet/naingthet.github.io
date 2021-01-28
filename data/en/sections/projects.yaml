@@ -23,6 +23,14 @@ buttons:
 
 # your projects
 projects:
+- name: AniMate - Anime Recommender
+  logo: /images/sections/projects/animate.png
+  role: Creator
+  timeline: "2020"
+  repo: https://github.com/naingthet/animate
+  summary: Feature-rich anime recommendation application powered by SVD collaborative filtering; application built with Flask, Bootstrap, and SQLAlchemy
+  tags: ["ml"]
+
 - name: Bitcoin Price Forecasting
   logo: /images/sections/projects/bitcoin.png
   role: Author
@@ -57,14 +65,14 @@ projects:
   summary: Sentiment analysis of Donald Trump’s Twitter using NLP techniques and Valence Aware Dictionary and Sentiment Reasoner (VADER)
   tags: ["nlp"]
 
-- name: House Prices
-  logo: /images/sections/projects/house.png
-  role: Author
-  timeline: "2020"
-  repo: https://github.com/naingthet/house-price-regression
-  #url: ""  # If your project is not a public repo but it has a website or any external details url then provide it here. don't provide "repo" and "url" simultaneously.
-  summary: Prediction of house sale prices with the XGBoost implementation of gradient boosting machines
-  tags: ["ml"]
+# - name: House Prices
+#   logo: /images/sections/projects/house.png
+#   role: Author
+#   timeline: "2020"
+#   repo: https://github.com/naingthet/house-price-regression
+#   #url: ""  # If your project is not a public repo but it has a website or any external details url then provide it here. don't provide "repo" and "url" simultaneously.
+#   summary: Prediction of house sale prices with the XGBoost implementation of gradient boosting machines
+#   tags: ["ml"]
 
 
 - name: Optic Neuropathy Classifier

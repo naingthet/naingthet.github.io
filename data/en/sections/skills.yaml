@@ -18,7 +18,7 @@ skills:
 
 - name: SQL
   icon: "/images/sections/skills/sql.png"
-  summary: "Primarily experienced with SQLite. Capable of managing, preprocessing, and analyzing data with SQL, with or without the support of Python."
+  summary: "Extensive experience with SQL for managing and interacting with databases, with or without the support of Python. Primarily work with PostgreSQL, MySQL, and SQLAlchemy."
   url: "https://www.sqlite.org/index.html"
 
 - name: TensorFlow
@@ -28,10 +28,8 @@ skills:
   
 - name: Scikit-Learn
   icon: "/images/sections/skills/sklearn.png"
-  summary: "Using as main toolkit for the application of machine learning models and techniques, including both supervised and unsupervised models as well as model selection, and model validation."
+  summary: "Using as main toolkit for the application of machine learning models and techniques, including both supervised and unsupervised models as well as model selection and model validation."
   url: "https://scikit-learn.org/stable/"
-
-
 
 - name: Keras
   icon: "/images/sections/skills/keras.png"
@@ -40,5 +38,5 @@ skills:
 
 - name: Git
   icon: "/images/sections/skills/git.png"
-  summary: "Experienced with Git and GitHub for project management and version control."
+  summary: "Experienced with Git and GitHub for project management and version control. Currently managing all personal projects with Git and GitHub."
   url: "https://git-scm.com/"

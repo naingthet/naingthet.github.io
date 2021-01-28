@@ -23,10 +23,10 @@ experiences:
     # end: Dec 2020
     # give some points about what was your responsibilities at the company.
     responsibilities:
-    - Lead day-to-day deliverable development and client interactions to determine optimal pricing and market opportunity for novel therapeutics
-    - Develop robust models for market sizing, revenue forecasting, and competitive market analysis for clients across many major global markets
-    - Collaborate with IQVIA’s AI/ML team to plan and present business development proposals to potential clients
-
+    - Lead the development and delivery of data-driven commercialization strategies for novel therapeutics, most recently winning a ~$500,000 follow-up engagement with a top pharmaceutical manufacturer
+    - Head workstreams to develop predictive models and competitive market analyses using various databases
+    - Analyze patient prescription data to forecast treatment affordability and recommend optimal pricing strategies
+    - Increase efficiency on multiple analytics and forecasting projects by automating predictive models with Python
 
 
 - company:
@@ -39,7 +39,7 @@ experiences:
     start: May 2018
     end: Aug 2018
     responsibilities:
-    - Applied natural language processing (NLP) techniques to perform terminology extraction, sentiment analysis, and topic segmentation on legislative texts to understand differences in international approaches to antitrust regulation
+    - Applied natural language processing (NLP) techniques to perform terminology extraction, sentiment analysis, and topic segmentation on legislative texts to discern differences in international approaches to antitrust regulation
 
 - company:
     name: Columbia University Senate
@@ -51,9 +51,9 @@ experiences:
     start: Jun 2016
     end: May 2019
     responsibilities:
-    - Designed and launched surveys to assess the satisfaction of over 15,000 students and faculty
-    - Developed reproducible Python notebooks to clean, analyze, and visualize annual survey results with the aim of identifying areas of improvement in student and faculty satisfaction
-    - Leveraged data visualizations to deliver actionable policy insights and recommendations to the Columbia University President and Board of Trustees, a non-technical audience
+    - Designed and launched qualitative surveys to assess the satisfaction of over 15,000 Columbia students and faculty
+    - Applied SQL and Python to clean, analyze, and visualize annual survey results to identify key areas of improvement in student and faculty satisfaction
+    - Leveraged data visualizations to deliver actionable policy insights to the Columbia University Board of Trustees, resulting in the growth of student resources including the creation of new campus spaces for minority students
 
 
 
@@ -68,5 +68,5 @@ experiences:
     start: Sep 2015
     end: May 2019
     responsibilities:
-    - Studied the application of Random Forest classification models to the detection and classification of optic neuropathies using clinical measurements, achieving 93% accuracy in classifying patients
-    - Investigated the application of convolutional neural networks (CNNs) to assess the potential value of deep learning algorithms built into imaging machines for onsite screening of patients
+    - Pioneered original research on the application of machine learning classifiers to the detection of optic neuropathies using clinical measurements, achieving up to 97% accuracy in classifying patients
+    - Investigated the application of convolutional neural networks (CNNs) to assess the potential value of deep learning algorithms built into diagnostic imaging machines
